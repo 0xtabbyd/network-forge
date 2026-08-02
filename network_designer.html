@@ -1,0 +1,3147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Network Designer v0.5</title>
+<style>
+:root{
+  --bg:#1E1E1E; --panel:#252526; --panel2:#2D2D30; --border:#3C3C3C;
+  --text:#CCCCCC; --text2:#9D9D9D; --text3:#6E6E6E;
+  --accent:#3B82F6; --danger:#EF4444; --ok:#22C55E; --info:#0EA5E9; --warn:#F59E0B;
+}
+body[data-theme="light"]{
+  --bg:#ECECEC; --panel:#F8F8F8; --panel2:#FFFFFF; --border:#D5D5D5;
+  --text:#1F1F1F; --text2:#555555; --text3:#909090;
+}
+body.fs #palette,body.fs #props,body.fs #bottombar,body.fs #bottomResize{display:none!important}
+body.hide-left #palette{display:none}
+body.hide-right #props{display:none}
+body.hide-left #palette{display:none}
+body.hide-right #props{display:none}
+.tb-btn.pon{color:var(--accent)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Hiragino Sans',sans-serif;
+  background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden;font-size:14px}
+button{font-family:inherit}
+svg.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+
+/* ═══ Toolbar ═══ */
+#toolbar{display:flex;align-items:center;gap:6px;padding:8px 16px;background:var(--panel);
+  border-bottom:1px solid var(--border);flex-shrink:0;flex-wrap:wrap;min-height:52px}
+.brand{font-weight:700;font-size:15px;color:var(--text);margin-right:10px;white-space:nowrap}
+.brand small{font-size:11px;color:var(--text3);font-weight:400;margin-left:4px}
+.tb-btn{display:flex;align-items:center;gap:6px;padding:8px 12px;border:1px solid transparent;
+  border-radius:6px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+.tb-btn:hover{background:var(--panel2);color:var(--text)}
+.tb-btn.active{background:#1d4ed8;color:#fff}
+.tb-btn:disabled{opacity:.35;cursor:default}
+.tb-btn:disabled:hover{background:transparent;color:var(--text2)}
+.tb-sep{width:1px;height:22px;background:var(--border);margin:0 6px}
+.view-tabs{display:flex;background:var(--bg);border-radius:8px;padding:3px;gap:2px;margin:0 6px}
+.vtab{padding:7px 14px;border:none;border-radius:6px;background:transparent;color:var(--text2);font-size:13px;cursor:pointer}
+.vtab.active{background:var(--accent);color:#fff}
+.vtab:hover:not(.active){color:var(--text)}
+.tb-right{margin-left:auto;display:flex;gap:4px;align-items:center}
+#fi{display:none}
+.menu-wrap{position:relative}
+.menu{position:absolute;top:calc(100% + 4px);left:0;background:var(--panel2);border:1px solid var(--border);
+  border-radius:9px;padding:5px;z-index:30;min-width:180px;display:none;box-shadow:0 6px 20px #0005}
+.menu.open{display:block}
+.menu button{display:flex;align-items:center;gap:9px;width:100%;padding:9px 12px;border:none;border-radius:6px;
+  background:transparent;color:var(--text);font-size:13px;cursor:pointer;text-align:left}
+.menu button:hover{background:var(--panel)}
+.menu .mdiv{height:1px;background:var(--border);margin:4px 6px}
+#explainCtl button{height:36px;padding:0 14px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:7px;color:var(--text2);font-size:13px;cursor:pointer}
+#explainCtl button:hover{color:var(--text);border-color:var(--text3)}
+
+/* ═══ Main ═══ */
+#main{flex:1;display:flex;overflow:hidden}
+
+/* Palette */
+#palette{width:200px;background:var(--panel);border-right:1px solid var(--border);
+  overflow-y:auto;padding:16px 12px;flex-shrink:0}
+.search-box{display:flex;align-items:center;gap:8px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:8px;padding:9px 12px;margin-bottom:16px}
+.search-box input{flex:1;background:none;border:none;color:var(--text);font-size:14px;outline:none;min-width:0}
+.search-box svg{color:var(--text3)}
+#palette details{margin-bottom:8px}
+#palette summary{cursor:pointer;font-size:12px;font-weight:700;color:var(--text2);
+  text-transform:uppercase;letter-spacing:.07em;padding:6px 4px;user-select:none;list-style:none;display:flex;align-items:center;gap:6px}
+#palette summary::before{content:'▾';font-size:10px;transition:transform .15s}
+#palette details:not([open]) summary::before{transform:rotate(-90deg)}
+.pal-item{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:7px;cursor:grab;
+  color:var(--text);font-size:14px;border:1px solid transparent;margin:2px 0}
+.pal-item:hover{background:var(--panel2);border-color:var(--border)}
+.pal-dot{width:12px;height:12px;border-radius:4px;flex-shrink:0}
+
+/* Canvas */
+#canvasArea{flex:1;display:flex;flex-direction:column;overflow:hidden;position:relative}
+#canvasWrap{flex:1;overflow:auto;background:var(--bg)}
+#canvasWrap.diagram{background:#F4F5F7}
+#zoomBar{position:absolute;right:16px;top:14px;display:flex;gap:2px;background:var(--panel);
+  border:1px solid var(--border);border-radius:8px;padding:3px;z-index:5;align-items:center}
+#zoomBar button{width:32px;height:30px;border:none;background:transparent;color:var(--text2);
+  font-size:16px;cursor:pointer;border-radius:5px}
+#zoomBar button:hover{background:var(--panel2);color:var(--text)}
+#zoomVal{font-size:12px;color:var(--text2);min-width:42px;text-align:center}
+
+/* Properties */
+#props{width:300px;background:var(--panel);border-left:1px solid var(--border);
+  overflow-y:auto;padding:20px 16px;flex-shrink:0}
+#props details{margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:16px}
+#props summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.07em;padding:4px 0 12px;user-select:none;list-style:none;display:flex;align-items:center;gap:6px}
+#props summary::before{content:'▾';font-size:10px;transition:transform .15s}
+#props details:not([open]) summary::before{transform:rotate(-90deg)}
+.fld{margin-bottom:16px}
+.fld label{display:block;font-size:13px;color:var(--text2);margin-bottom:6px}
+.fld input,.fld select,.fld textarea{width:100%;height:40px;padding:8px 12px;background:var(--panel2);
+  border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px}
+.fld textarea{height:72px;resize:vertical;line-height:1.5}
+.fld input:focus,.fld select:focus,.fld textarea:focus{outline:none;border-color:var(--accent)}
+.fld-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.list-row{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--panel2);
+  border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer}
+.list-row:hover{border-color:var(--accent)}
+.list-row .nm{font-size:14px;font-weight:600;color:var(--text);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list-row .sub{font-size:12px;color:var(--text2);font-family:'SF Mono',Menlo,monospace;white-space:nowrap}
+.list-row .chev{color:var(--text3);font-size:14px}
+.badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:700;color:#fff}
+.add-btn{width:100%;height:40px;border:1px dashed var(--border);border-radius:8px;background:transparent;
+  color:var(--text2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.add-btn:hover{color:var(--text);border-color:var(--text2)}
+.danger-btn{width:100%;height:40px;border:1px solid #7f1d1d;border-radius:8px;background:transparent;
+  color:var(--danger);font-size:14px;cursor:pointer;margin-top:8px}
+.danger-btn:hover{background:#7f1d1d33}
+.back-btn{display:flex;align-items:center;gap:8px;background:none;border:none;color:var(--accent);
+  font-size:14px;cursor:pointer;padding:4px 0;margin-bottom:16px}
+.empty-hint{color:var(--text3);font-size:14px;line-height:1.8;padding:8px 4px}
+.prop-title{font-size:16px;font-weight:700;color:var(--text);margin-bottom:20px;display:flex;align-items:center;gap:10px}
+.sec-body{max-height:320px;overflow-y:auto;padding-right:2px}
+.fstat{font-size:12.5px;margin-top:5px;min-height:16px}
+.fstat.ok{color:var(--ok)}.fstat.warn{color:var(--warn)}.fstat.err{color:var(--danger)}
+.info-i{cursor:pointer;color:var(--text3);margin-left:6px;font-size:13px;user-select:none}
+.info-i:hover{color:var(--accent)}
+.chk-row{display:flex;align-items:center;gap:10px;padding:10px 4px;font-size:14px;color:var(--text)}
+.chk-row input{width:18px;height:18px;accent-color:var(--accent)}
+.inline-add{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+.inline-add input,.inline-add select{height:40px;padding:8px 12px;background:var(--panel2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px}
+.inline-add .full{grid-column:1/3}
+
+/* ═══ Bottom Panel ═══ */
+#bottomResize{height:5px;background:var(--panel);cursor:ns-resize;flex-shrink:0;border-top:1px solid var(--border)}
+#bottomResize:hover{background:var(--accent)}
+#bottombar{height:250px;background:var(--panel);flex-shrink:0;display:flex;flex-direction:column;min-height:80px}
+#btabs{display:flex;gap:2px;padding:6px 16px 0;border-bottom:1px solid var(--border);align-items:center}
+.btab{padding:8px 16px;border:none;background:transparent;color:var(--text2);font-size:13px;cursor:pointer;
+  border-bottom:2px solid transparent}
+.btab.active{color:var(--text);border-bottom-color:var(--accent)}
+.btab .cnt{display:inline-block;background:var(--danger);color:#fff;font-size:10px;border-radius:8px;
+  padding:1px 6px;margin-left:6px;font-weight:700}
+.bpane{flex:1;overflow-y:auto;padding:12px 20px;display:none;font-size:14px;line-height:1.9}
+.bpane.active{display:block}
+/* Terminal-style logs */
+#pane-logs{padding:0;display:none;flex-direction:column;overflow:hidden}
+#pane-logs.active{display:flex}
+#logbar{display:flex;gap:8px;align-items:center;padding:7px 12px;background:var(--panel);border-bottom:1px solid var(--border);flex-wrap:wrap}
+#logbar select,#logbar input{height:30px;padding:2px 10px;background:var(--panel2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12.5px}
+#logbar input{width:160px}
+#logbar button{height:30px;padding:0 10px;background:transparent;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:12px;cursor:pointer}
+#logbar button:hover{color:var(--text);border-color:var(--text3)}
+#logout{flex:1;overflow-y:auto;background:#0C0C0C;font-family:'SF Mono',Menlo,Consolas,'Courier New',monospace;font-size:13px;padding:10px 16px;line-height:1.8}
+.lline{white-space:pre-wrap;word-break:break-all}
+.lts{color:#6E7681}
+.lv-INFO{color:#569CD6}.lv-SUCCESS{color:#3FB950}.lv-WARNING{color:#E5C07B}
+.lv-ERROR{color:#F14C4C}.lv-ROUTE{color:#56B6C2}.lv-PACKET{color:#C678DD}
+.lmsg{color:#D4D4D4}
+.ldet{color:#9DA5B4;padding-left:8.5em;white-space:pre-wrap}
+.net-label{cursor:pointer}
+.vitem{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:7px;cursor:pointer;margin-bottom:4px}
+.vitem:hover{background:var(--panel2)}
+.vitem .vlv{font-size:11px;font-weight:700;padding:2px 8px;border-radius:5px;flex-shrink:0}
+#explainCtl{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+#explainCtl select{height:36px;padding:4px 10px;background:var(--panel2);border:1px solid var(--border);
+  border-radius:7px;color:var(--text);font-size:14px}
+.ex-card{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:10px}
+.ex-card h4{font-size:15px;color:var(--text);margin-bottom:8px;display:flex;gap:8px;align-items:center}
+.ex-card p{font-size:14px;color:var(--text2);line-height:1.8}
+
+/* Diagram tables */
+.tblwrap{padding:24px;color:#1e293b}
+.tblwrap h2{font-size:18px;margin-bottom:14px;color:#0f172a}
+table.data{border-collapse:collapse;background:white;border-radius:10px;overflow:hidden;box-shadow:0 1px 3px #0002}
+table.data th{background:#F1F5F9;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:10px 16px;text-align:left}
+table.data td{padding:9px 16px;border-top:1px solid #E2E8F0;font-size:14px;font-family:'SF Mono',Menlo,monospace}
+table.data td.n{font-family:inherit}
+.chip{display:inline-block;padding:2px 10px;border-radius:10px;font-size:12px;font-weight:700;color:#fff}
+.vlan-grid{display:flex;flex-wrap:wrap;gap:18px;padding:24px}
+.vlan-card{background:white;border-radius:12px;min-width:250px;max-width:320px;overflow:hidden;box-shadow:0 1px 3px #0002}
+.vlan-card .vh{padding:12px 16px;font-weight:700;font-size:15px;color:#fff}
+.vlan-card .vb{padding:12px 16px}
+.vlan-card .sec{font-size:11px;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;margin:8px 0 4px}
+.vlan-card .mem{font-size:13px;padding:3px 0;color:#334155;font-family:'SF Mono',Menlo,monospace}
+svg.diagram-svg text{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;user-select:none}
+path[data-link]{transition:stroke-width .1s}
+path[data-link]:hover{stroke-width:4.5!important;cursor:pointer}
+path[data-cable]{cursor:grab;transition:stroke-width .1s}
+path[data-cable]:hover{stroke-width:4.5!important}
+path[data-cable]:active{cursor:grabbing}
+/* cable hover highlight: dim others, hovered copy drawn in overlay layer */
+svg.hl-on path[data-cable]{opacity:.13}
+svg.hl-on g.dev-g:not(.hl){opacity:.42}
+#hlLayer,#hlLayer *{pointer-events:none!important}
+.port-hl,.cablbl{pointer-events:none!important}
+.dev-g{cursor:grab}
+.port-c{cursor:crosshair}
+.port-c:hover rect{stroke:#F59E0B;stroke-width:2.2}
+.port-c.used{cursor:not-allowed}
+/* サイドバー境界のスプリッタ＋開閉ボタン */
+.splitter{position:relative;width:8px;flex-shrink:0;background:var(--panel);
+  border-left:1px solid var(--border);border-right:1px solid var(--border)}
+.sp-btn{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:16px;height:52px;border:1px solid var(--border);border-radius:5px;
+  background:var(--panel2);color:var(--text3);cursor:pointer;padding:0;
+  display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
+.sp-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
+.sp-btn::before{content:'';display:block;border:4px solid transparent}
+#splitL .sp-btn::before{border-right-color:currentColor;margin-right:3px}
+#splitL .sp-btn.pon::before{border-right-color:transparent;border-left-color:currentColor;margin:0 0 0 3px}
+#splitR .sp-btn::before{border-left-color:currentColor;margin-left:3px}
+#splitR .sp-btn.pon::before{border-left-color:transparent;border-right-color:currentColor;margin:0 3px 0 0}
+body.fs .splitter{display:none}
+/* 機器ホバー時の詳細パネル */
+#devTip{position:absolute;z-index:20;display:none;pointer-events:none;
+  background:var(--panel2);border:1px solid var(--border);border-radius:9px;
+  padding:11px 13px;box-shadow:0 8px 26px #0007;font-size:13px;color:var(--text);
+  max-width:min(420px,calc(100% - 24px));max-height:calc(100% - 24px);
+  overflow:hidden;box-sizing:border-box}
+#devTip .ttwrap{max-height:inherit;overflow:auto}
+#devTip .tt{font-size:13.5px;font-weight:700;margin-bottom:3px;display:flex;align-items:center;gap:7px}
+#devTip .tsub{font-size:11.5px;color:var(--text3);margin-bottom:9px}
+#devTip table{border-collapse:collapse;width:100%;table-layout:auto}
+#devTip th{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;
+  text-align:left;padding:2px 10px 4px 0;font-weight:600;white-space:nowrap}
+#devTip td{font-size:12px;padding:2px 10px 2px 0;font-family:'SF Mono',Menlo,monospace;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+#devTip td.nm{font-family:inherit;font-weight:600;max-width:110px}
+#devTip .tt{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#devTip .tsub,#devTip .meta{overflow-wrap:anywhere}
+#devTip .vchip{display:inline-block;padding:0 6px;border-radius:5px;font-size:10.5px;font-weight:700;color:#fff}
+#devTip .meta{margin-top:8px;font-size:11.5px;color:var(--text2);line-height:1.6}
+body.linkmode .port-c rect{stroke-width:1.8}
+body.linkmode .port-c:hover rect{stroke:#F59E0B;stroke-width:2.4}
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <span class="brand">Network Designer<small>v0.5</small></span>
+  <div class="menu-wrap">
+    <button class="tb-btn" onclick="toggleMenu(event)"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7h5l2 2h11v10H3z"/><path d="M3 7V5h6l2 2"/></svg>Project ▾</button>
+    <div class="menu" id="projMenu">
+      <button onclick="closeMenu();newProject()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New</button>
+      <button onclick="closeMenu();document.getElementById('fi').click()"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7h5l2 2h11v10H3z"/><path d="M3 7V5h6l2 2"/></svg>Open (JSON)</button>
+      <button onclick="closeMenu();exportJSON()"><svg class="ic" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>Save (JSON)</button>
+      <button onclick="closeMenu();exportSVG()"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Export SVG</button>
+      <div class="mdiv"></div>
+      <button onclick="closeMenu();loadSample()"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 8v8M8 12h8"/></svg>サンプル構成を読込</button>
+    </div>
+  </div>
+  <input type="file" id="fi" accept=".json" onchange="importFile(this)">
+  <button class="tb-btn" id="undoBtn" onclick="undo()" title="元に戻す"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-15-6.7L3 13"/></svg>Undo</button>
+  <button class="tb-btn" id="redoBtn" onclick="redo()" title="やり直す"><svg class="ic" viewBox="0 0 24 24"><path d="M21 7v6h-6"/><path d="M3 17a9 9 0 0 1 15-6.7L21 13"/></svg>Redo</button>
+  <button class="tb-btn" onclick="applyAutoLayout()" title="自動整列"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>整列</button>
+  <div class="tb-sep"></div>
+  <div class="view-tabs" id="viewTabs"></div>
+  <div class="tb-right">
+    <button class="tb-btn" id="themeBtn" onclick="cycleTheme()" title="テーマ切替">🌙 Dark</button>
+  </div>
+</div>
+
+<div id="main">
+  <nav id="palette"></nav>
+  <div class="splitter" id="splitL"><button class="sp-btn" id="panelLBtn" onclick="togglePanel('left')" title="左パレットを開閉"></button></div>
+  <div id="canvasArea">
+    <div id="zoomBar">
+      <button onclick="setZoom(zoom-0.1)">−</button>
+      <span id="zoomVal">100%</span>
+      <button onclick="setZoom(zoom+0.1)">＋</button>
+      <button onclick="setZoom(1)" title="リセット">⊡</button>
+      <button onclick="toggleFullscreen()" title="キャンバス最大化 (Esc)">⛶</button>
+    </div>
+    <div id="canvasWrap"></div>
+    <div id="devTip"></div>
+  </div>
+  <div class="splitter" id="splitR"><button class="sp-btn" id="panelRBtn" onclick="togglePanel('right')" title="右プロパティを開閉"></button></div>
+  <aside id="props"></aside>
+</div>
+
+<div id="bottomResize"></div>
+<div id="bottombar">
+  <div id="btabs">
+    <button class="btab active" data-b="logs" onclick="showBTab('logs')">Logs</button>
+    <button class="btab" data-b="explain" onclick="showBTab('explain')">Explain</button>
+    <button class="btab" data-b="validation" onclick="showBTab('validation')">Validation<span class="cnt" id="vcnt" style="display:none"></span></button>
+  </div>
+  <div class="bpane active" id="pane-logs">
+    <div id="logbar">
+      <select id="logFilter" onchange="logFilter=this.value;renderLogs()">
+        <option>All</option><option>INFO</option><option>SUCCESS</option><option>WARNING</option>
+        <option>ERROR</option><option>ROUTE</option><option>PACKET</option>
+      </select>
+      <input id="logSearch" placeholder="検索…" oninput="logSearch=this.value;renderLogs()">
+      <span style="flex:1"></span>
+      <button onclick="copyLogs()">Copy</button>
+      <button onclick="saveLogs()">Save</button>
+      <button onclick="clearLogs()">Clear</button>
+    </div>
+    <div id="logout"></div>
+  </div>
+  <div class="bpane" id="pane-explain">
+    <div id="explainCtl">
+      <select id="expFrom"></select>
+      <select id="expFromIf" title="送信元インターフェース" style="min-width:120px"></select>
+      <span style="color:var(--text3)">→</span>
+      <select id="expTo"></select>
+      <select id="expToIf" title="宛先インターフェース" style="min-width:120px"></select>
+      <button onclick="runExplain()">経路をたどる</button>
+      <button onclick="simulatePacket()">▶ Start</button>
+      <button id="pauseBtn" onclick="pauseSim(this)">⏸</button>
+      <button onclick="stopSim()">⏹</button>
+      <select id="simSpeedSel" onchange="simSpeed=+this.value" style="width:70px">
+        <option value="0.5">0.5x</option><option value="1" selected>1x</option><option value="2">2x</option><option value="4">4x</option>
+      </select>
+      <label style="display:flex;align-items:center;gap:7px;font-size:13px;color:var(--text2);cursor:pointer">
+        <input type="checkbox" id="exModeChk" onchange="setExplainMode(this.checked)" style="accent-color:var(--accent)">機器クリックで説明
+      </label>
+    </div>
+    <div id="explainOut"></div>
+  </div>
+  <div class="bpane" id="pane-validation"><div class="empty-hint">「Validate」を押すとチェック結果が表示されます。</div></div>
+</div>
+
+<script>
+'use strict';
+// ═══════════════════════════════════════════════════════
+// Domain
+// ═══════════════════════════════════════════════════════
+const DEV_TYPES = {
+  internet:{label:'Internet', cat:'Other',  bg:'#DBEAFE',border:'#3B82F6',tag:'NET'},
+  onu:     {label:'ONU',      cat:'Other',  bg:'#F1F5F9',border:'#64748B',tag:'ONU'},
+  router:  {label:'Router',   cat:'Network',bg:'#E0E7FF',border:'#6366F1',tag:'RTR'},
+  firewall:{label:'Firewall', cat:'Network',bg:'#FEF2F2',border:'#EF4444',tag:'FW'},
+  utm:     {label:'UTM',      cat:'Network',bg:'#FEF2F2',border:'#EF4444',tag:'UTM'},
+  l3sw:    {label:'L3 Switch',cat:'Network',bg:'#FAF5FF',border:'#8B5CF6',tag:'L3'},
+  l2sw:    {label:'L2 Switch',cat:'Network',bg:'#F0FDF4',border:'#22C55E',tag:'L2'},
+  server:  {label:'Server',   cat:'Server', bg:'#EFF6FF',border:'#3B82F6',tag:'SRV'},
+  nas:     {label:'NAS',      cat:'Server', bg:'#F0FDFA',border:'#0D9488',tag:'NAS'},
+  pc:      {label:'Desktop',  cat:'Client', bg:'#ECFDF5',border:'#10B981',tag:'PC'},
+  laptop:  {label:'Laptop',   cat:'Client', bg:'#ECFEFF',border:'#06B6D4',tag:'NB'},
+  printer: {label:'Printer',  cat:'Client', bg:'#FEFCE8',border:'#CA8A04',tag:'PRN'},
+  ap:      {label:'AP',       cat:'Client', bg:'#FFF7ED',border:'#F97316',tag:'AP'},
+};
+const PAL_CATS=['Network','Server','Client','Other'];
+const ROLES = ['lan','wan','access','trunk','svi','wireless'];
+const NET_PALETTE = ['#0EA5E9','#F97316','#7C3AED','#16A34A','#D97706','#EC4899','#06B6D4','#84CC16','#6366F1','#10B981'];
+const VIEWS = [['physical','Physical'],['hybrid','Hybrid'],['logical','Logical'],['vlan','VLAN'],['port','Port'],['iplist','IP'],['cables','Cable']];
+
+const ROLE_EXPLAIN = {
+  internet:'インターネット（外部ネットワーク）を表します。社内からの通信の最終的な出口です。',
+  router:'ネットワーク同士を接続し、ルーティングテーブルに従ってパケットを転送します。社内と外部の境界に置かれることが多い機器です。',
+  firewall:'通信を検査し、許可されたものだけを通過させるセキュリティ機器です。',
+  utm:'ファイアウォールに加えアンチウイルス・IPS等を統合したセキュリティ機器です。',
+  l3sw:'VLAN間ルーティングを行う高速なスイッチです。各VLANのゲートウェイ（SVI）を持ちます。',
+  l2sw:'同一ネットワーク内でMACアドレスを学習してフレームを転送します。VLANで論理的に分割できます（スマートスイッチの場合）。',
+  server:'サービスを提供するコンピュータです。',
+  nas:'ネットワーク接続ストレージです。ファイル共有やバックアップに使われます。',
+  pc:'利用者の端末です。通信はデフォルトゲートウェイ経由で他ネットワークへ届きます。',
+  laptop:'無線または有線で接続する持ち運び可能な端末です。',
+  printer:'ネットワーク対応プリンタです。',
+  ap:'無線LANアクセスポイントです。Wi-Fi端末を有線ネットワークに橋渡しします。',
+  onu:'光回線終端装置です。光信号とEthernet信号を変換します。',
+};
+
+// ═══════════════════════════════════════════════════════
+// Sample project
+// ═══════════════════════════════════════════════════════
+const SAMPLE = {version:1,name:'Sample Corp Network',devices:[
+ {id:'inet',type:'internet',name:'Internet',x:640,y:30,interfaces:[
+   {id:'wan',name:'WAN',role:'wan',ip:'203.0.113.1',prefix:30}]},
+ {id:'rtr',type:'router',name:'境界ルーター',hostname:'edge-gw',manufacturer:'Yamaha',model:'RTX1300',x:640,y:170,
+  nat:{mode:'pat'},interfaces:[
+   {id:'WAN',name:'WAN',role:'wan',speed:'1G',ip:'203.0.113.2',prefix:30,gateway:'203.0.113.1'},
+   {id:'LAN1',name:'LAN1',role:'lan',speed:'10G',ip:'10.0.0.1',prefix:30}],
+  routes:[
+   {destination:'192.168.10.0',prefix:24,nextHop:'10.0.0.2',protocol:'Static'},
+   {destination:'192.168.20.0',prefix:24,nextHop:'10.0.0.2',protocol:'Static'},
+   {destination:'192.168.30.0',prefix:24,nextHop:'10.0.0.2',protocol:'Static'},
+   {destination:'192.168.99.0',prefix:24,nextHop:'10.0.0.2',protocol:'Static'},
+   {destination:'0.0.0.0',prefix:0,nextHop:'203.0.113.1',protocol:'Static'}]},
+ {id:'utm',type:'utm',name:'UTM',hostname:'fw-core',manufacturer:'Fortinet',model:'FortiGate 100F',x:640,y:330,
+  utmFeatures:{ips:true,webfilter:true,vpn:true},interfaces:[
+   {id:'P1',name:'port1',role:'wan',speed:'10G',ip:'10.0.0.2',prefix:30},
+   {id:'P2',name:'port2',role:'lan',speed:'10G',ip:'10.0.1.1',prefix:30}],
+  routes:[
+   {destination:'192.168.10.0',prefix:24,nextHop:'10.0.1.2',protocol:'Static'},
+   {destination:'192.168.20.0',prefix:24,nextHop:'10.0.1.2',protocol:'Static'},
+   {destination:'192.168.30.0',prefix:24,nextHop:'10.0.1.2',protocol:'Static'},
+   {destination:'192.168.99.0',prefix:24,nextHop:'10.0.1.2',protocol:'Static'},
+   {destination:'0.0.0.0',prefix:0,nextHop:'10.0.0.1',protocol:'Static'}]},
+ {id:'l3',type:'l3sw',name:'コアL3スイッチ',hostname:'core-l3',manufacturer:'Yamaha',model:'SWX3220-16MT',x:620,y:490,
+  stp:{enabled:true,mode:'RSTP',priority:4096},
+  vlans:[{id:10,name:'Office'},{id:20,name:'Wi-Fi'},{id:30,name:'Server'},{id:99,name:'Management'}],
+  interfaces:[
+   {id:'UP',name:'port1.1',role:'lan',speed:'10G',ip:'10.0.1.2',prefix:30},
+   {id:'TR1',name:'port1.2',role:'trunk',speed:'10G',allowedVlans:[10,20,99]},
+   {id:'TR2',name:'port1.3',role:'trunk',speed:'10G',allowedVlans:[30,99]},
+   {id:'V10',name:'VLAN10',role:'svi',ip:'192.168.10.1',prefix:24,vlanId:10},
+   {id:'V20',name:'VLAN20',role:'svi',ip:'192.168.20.1',prefix:24,vlanId:20},
+   {id:'V30',name:'VLAN30',role:'svi',ip:'192.168.30.1',prefix:24,vlanId:30},
+   {id:'V99',name:'VLAN99',role:'svi',ip:'192.168.99.1',prefix:24,vlanId:99}],
+  routes:[{destination:'0.0.0.0',prefix:0,nextHop:'10.0.1.1',protocol:'Static'}]},
+ {id:'l2a',type:'l2sw',name:'L2スイッチ(オフィス)',hostname:'access-sw1',manufacturer:'Buffalo',model:'BS-GS2024',
+  switchType:'smart',stp:{enabled:true,mode:'RSTP',priority:32768},x:300,y:750,interfaces:[
+   {id:'UP',name:'Port1',role:'trunk',speed:'10G',allowedVlans:[10,20,99]},
+   {id:'P2',name:'Port2',role:'access',vlanId:10},
+   {id:'P3',name:'Port3',role:'access',vlanId:10},
+   {id:'P4',name:'Port4',role:'access',vlanId:10},
+   {id:'P5',name:'Port5',role:'access',vlanId:20},
+   {id:'P6',name:'Port6',role:'access',vlanId:99}]},
+ {id:'l2b',type:'l2sw',name:'L2スイッチ(サーバー)',hostname:'server-sw1',manufacturer:'Aruba',model:'2930F',
+  switchType:'smart',x:1000,y:750,interfaces:[
+   {id:'UP',name:'Port1',role:'trunk',speed:'10G',allowedVlans:[30,99]},
+   {id:'P2',name:'Port2',role:'access',vlanId:30},
+   {id:'P3',name:'Port3',role:'access',vlanId:30}]},
+ {id:'pc1',type:'pc',name:'営業PC',x:40,y:1000,interfaces:[
+   {id:'eth0',name:'eth0',role:'access',ip:'192.168.10.50',prefix:24,vlanId:10,gateway:'192.168.10.1',dns:'192.168.30.10'}]},
+ {id:'pc2',type:'pc',name:'経理PC',x:250,y:1000,interfaces:[
+   {id:'eth0',name:'eth0',role:'access',ip:'192.168.10.60',prefix:24,vlanId:10,gateway:'192.168.10.1',dns:'192.168.30.10'}]},
+ {id:'prn',type:'printer',name:'プリンタ',x:460,y:1000,interfaces:[
+   {id:'eth0',name:'eth0',role:'access',ip:'192.168.10.70',prefix:24,vlanId:10,gateway:'192.168.10.1'}]},
+ {id:'ap1',type:'ap',name:'無線AP',x:670,y:1000,
+  ssids:[{id:'s1',name:'Corp-WiFi',band:'2.4/5GHz',vlanId:20,security:'WPA3'}],interfaces:[
+   {id:'LAN',name:'LAN',role:'access',ip:'192.168.20.10',prefix:24,vlanId:20,gateway:'192.168.20.1'},
+   {id:'WL',name:'WLAN',role:'wireless'}]},
+ {id:'adm',type:'pc',name:'管理端末',x:880,y:1000,interfaces:[
+   {id:'eth0',name:'eth0',role:'access',ip:'192.168.99.10',prefix:24,vlanId:99,gateway:'192.168.99.1'}]},
+ {id:'web',type:'server',name:'Webサーバー',hostname:'web01',os:'Ubuntu 24.04',x:1090,y:1000,
+  disks:[{name:'sda',mount:'/',capacity:'500GB'}],interfaces:[
+   {id:'eth0',name:'eth0',role:'access',speed:'1G',ip:'192.168.30.10',prefix:24,vlanId:30,gateway:'192.168.30.1',dns:'8.8.8.8'}]},
+ {id:'nas',type:'nas',name:'バックアップNAS',hostname:'nas01',manufacturer:'Synology',x:1300,y:1000,
+  disks:[{name:'volume1',mount:'/volume1',capacity:'16TB'}],interfaces:[
+   {id:'eth0',name:'bond0',role:'access',speed:'1G',ip:'192.168.30.20',prefix:24,vlanId:30,gateway:'192.168.30.1'}]},
+ {id:'nb1',type:'laptop',name:'ノートPC',x:670,y:1180,interfaces:[
+   {id:'wlan0',name:'wlan0',role:'wireless',ip:'192.168.20.60',prefix:24,vlanId:20,gateway:'192.168.20.1',dns:'192.168.30.10'}]}
+],links:[
+ {id:'k1',a:{deviceId:'inet',ifId:'wan'},b:{deviceId:'rtr',ifId:'WAN'},type:'wired',speed:'1G'},
+ {id:'k2',a:{deviceId:'rtr',ifId:'LAN1'},b:{deviceId:'utm',ifId:'P1'},type:'wired',speed:'10G'},
+ {id:'k3',a:{deviceId:'utm',ifId:'P2'},b:{deviceId:'l3',ifId:'UP'},type:'wired',speed:'10G'},
+ {id:'k4',a:{deviceId:'l3',ifId:'TR1'},b:{deviceId:'l2a',ifId:'UP'},type:'wired',speed:'10G'},
+ {id:'k5',a:{deviceId:'l3',ifId:'TR2'},b:{deviceId:'l2b',ifId:'UP'},type:'wired',speed:'10G'},
+ {id:'k6',a:{deviceId:'l2a',ifId:'P2'},b:{deviceId:'pc1',ifId:'eth0'},type:'wired',speed:'1G'},
+ {id:'k7',a:{deviceId:'l2a',ifId:'P3'},b:{deviceId:'pc2',ifId:'eth0'},type:'wired',speed:'1G'},
+ {id:'k8',a:{deviceId:'l2a',ifId:'P4'},b:{deviceId:'prn',ifId:'eth0'},type:'wired',speed:'1G'},
+ {id:'k9',a:{deviceId:'l2a',ifId:'P5'},b:{deviceId:'ap1',ifId:'LAN'},type:'wired',speed:'1G'},
+ {id:'k10',a:{deviceId:'l2a',ifId:'P6'},b:{deviceId:'adm',ifId:'eth0'},type:'wired',speed:'1G'},
+ {id:'k11',a:{deviceId:'l2b',ifId:'P2'},b:{deviceId:'web',ifId:'eth0'},type:'wired',speed:'1G'},
+ {id:'k12',a:{deviceId:'l2b',ifId:'P3'},b:{deviceId:'nas',ifId:'eth0'},type:'wired',speed:'1G'},
+ {id:'k13',a:{deviceId:'ap1',ifId:'WL'},b:{deviceId:'nb1',ifId:'wlan0'},type:'wireless',speed:'Wi-Fi 6'}
+]};
+
+// ═══════════════════════════════════════════════════════
+// State
+// ═══════════════════════════════════════════════════════
+let project=null, view='physical', selectedDev=null, editIfIdx=null;
+let editVlanIdx=null, editSsidIdx=null, propDevId=null;
+let linkFirst=null, drag=null, zoom=1;
+let selectedLink=null, portDrag=null;
+let explainMode=false;
+let hist=[], histIdx=-1;
+let lastValidation=[];
+
+// ═══════════════════════════════════════════════════════
+// Infrastructure
+// ═══════════════════════════════════════════════════════
+function saveLocal(){ try{ localStorage.setItem('netdesigner.project', JSON.stringify(project)); }catch(e){} }
+function loadLocal(){ try{ const s=localStorage.getItem('netdesigner.project'); return s?JSON.parse(s):null; }catch(e){ return null; } }
+
+function commit(){
+  saveLocal();
+  hist=hist.slice(0,histIdx+1);
+  hist.push(JSON.stringify(project));
+  if(hist.length>60) hist.shift(); else histIdx++;
+  updateUndoBtns();
+  scheduleValidation();   // 編集のたびに検証結果を最新化
+}
+// 連続編集でも重くならないようデバウンスして再検証
+var _valTimer=null;
+function scheduleValidation(delay){
+  clearTimeout(_valTimer);
+  _valTimer=setTimeout(()=>{ try{ runValidation(true); }catch(e){} }, delay??180);
+}
+function undo(){ if(histIdx>0){ histIdx--; project=JSON.parse(hist[histIdx]); saveLocal(); selectedDev=null; editIfIdx=null; renderAll(); updateUndoBtns(); scheduleValidation(); } }
+function redo(){ if(histIdx<hist.length-1){ histIdx++; project=JSON.parse(hist[histIdx]); saveLocal(); selectedDev=null; editIfIdx=null; renderAll(); updateUndoBtns(); scheduleValidation(); } }
+function updateUndoBtns(){
+  document.getElementById('undoBtn').disabled = histIdx<=0;
+  document.getElementById('redoBtn').disabled = histIdx>=hist.length-1;
+}
+
+function newProject(){
+  if(!confirm('新規プロジェクトを作成しますか？（現在の内容は破棄されます）')) return;
+  project={version:1,name:'New Project',devices:[],links:[]};
+  selectedDev=null; editIfIdx=null; commit(); renderAll();
+  log('info','新規プロジェクトを作成しました');
+}
+
+function migrate(json){
+  if(json.cables){
+    const typeMap={hub:'l2sw',desktop:'pc'};
+    const devices=(json.devices||[]).map(d=>({
+      id:d.id,type:typeMap[d.type]||((d.type in DEV_TYPES)?d.type:'pc'),
+      name:d.name||d.id,manufacturer:d.manufacturer,model:d.model,serial:d.serial,hostname:d.hostname,
+      switchType:d.switchType,
+      ssids:(d.ssids||[]).map(s=>({id:s.id,name:s.name,band:[s.band24?'2.4GHz':null,s.band5?'5GHz':null].filter(Boolean).join('/')||s.band,vlanId:s.vlanId})),
+      x:d.x??100,y:d.y??100,
+      interfaces:(d.interfaces||[]).map(i=>{
+        let ip,prefix;
+        if(i.ip){const sp=String(i.ip).split('/');ip=sp[0];prefix=+(sp[1]??24);}
+        let role=i.mode||'lan';
+        if(i.type==='virtual')role='svi';
+        if(i.type==='wireless')role='wireless';
+        return {id:i.id,name:i.name||i.id,role,ip,prefix,vlanId:i.vlanId,mac:i.mac,gateway:d.defaultGateway,allowedVlans:i.allowedVlans};
+      }),
+      routes:(d.routes||[]).map(r=>{
+        const sp=String(r.destNetwork||'0.0.0.0/0').split('/');
+        return {destination:sp[0],prefix:+(sp[1]??0),nextHop:r.nextHop,protocol:'Static'};
+      })
+    }));
+    const links=(json.cables||[]).map((c,i)=>({id:c.id||('k'+i),
+      a:{deviceId:c.fromId,ifId:c.fromPort},b:{deviceId:c.toId,ifId:c.toPort},
+      type:c.type||'wired',speed:c.speed}));
+    return {version:1,name:'Imported',devices,links};
+  }
+  return json;
+}
+function importFile(input){
+  const f=input.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      project=migrate(JSON.parse(e.target.result));
+      selectedDev=null; editIfIdx=null; commit(); renderAll();
+      log('ok','インポート完了: '+(project.devices?.length??0)+' devices / '+(project.links?.length??0)+' links');
+      runValidation();
+    }catch(err){ log('err','インポート失敗: '+err.message); }
+  };
+  r.readAsText(f); input.value='';
+}
+function download(name,content,mime){
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob([content],{type:mime}));
+  a.download=name; a.click(); URL.revokeObjectURL(a.href);
+}
+function exportJSON(){ download('network_project.json',JSON.stringify(project,null,2),'application/json'); log('ok','JSONを保存しました'); }
+function exportSVG(){
+  const svg=document.querySelector('#canvasWrap svg');
+  if(!svg){ log('warn','このビューはSVGではありません'); return; }
+  download('network_'+view+'.svg',svg.outerHTML,'image/svg+xml');
+}
+
+// ═══════════════════════════════════════════════════════
+// Application: Graph Builder
+// ═══════════════════════════════════════════════════════
+function ip2int(ip){const p=ip.split('.').map(Number);return (((p[0]<<24)|(p[1]<<16)|(p[2]<<8)|p[3])>>>0);}
+function netOf(ip,prefix){
+  const mask=prefix===0?0:((~0<<(32-prefix))>>>0);
+  const n=ip2int(ip)&mask;
+  return [n>>>24&255,n>>>16&255,n>>>8&255,n&255].join('.')+'/'+prefix;
+}
+function inNet(ip,cidr){const [,pfx]=cidr.split('/');return netOf(ip,+pfx)===cidr;}
+function isPrivate(ip){
+  const n=ip2int(ip);
+  return (n>>>24===10)||((n>>>24===172)&&((n>>>16&255)>=16&&(n>>>16&255)<=31))||(n>>>16===0xC0A8);
+}
+function buildGraph(proj){
+  const devMap={}; for(const d of proj.devices) devMap[d.id]=d;
+  const ifOf=(dId,iId)=>(devMap[dId]?.interfaces||[]).find(i=>i.id===iId);
+  const nets=new Map();
+  for(const d of proj.devices) for(const i of d.interfaces||[]){
+    if(!i.ip||i.prefix===undefined||i.prefix===null) continue;
+    const cidr=netOf(i.ip,+i.prefix);
+    if(!nets.has(cidr)) nets.set(cidr,{id:cidr,cidr,vlan:null,type:'lan',interfaces:[]});
+    const n=nets.get(cidr);
+    n.interfaces.push({deviceId:d.id,ifId:i.id});
+    if(i.vlanId!=null&&n.vlan==null) n.vlan=i.vlanId;
+    if(i.role==='wan'||!isPrivate(i.ip)) n.type='wan';
+  }
+  let ci=0; for(const n of nets.values()) n.color=NET_PALETTE[ci++%NET_PALETTE.length];
+  const ipIndex={};
+  for(const d of proj.devices) for(const i of d.interfaces||[]) if(i.ip) ipIndex[i.ip]={deviceId:d.id,ifId:i.id};
+  const phys={}; for(const d of proj.devices) phys[d.id]=[];
+  for(const l of proj.links||[]) if(devMap[l.a.deviceId]&&devMap[l.b.deviceId]){
+    phys[l.a.deviceId].push(l.b.deviceId); phys[l.b.deviceId].push(l.a.deviceId);
+  }
+  return {devMap,ifOf,nets,ipIndex,phys};
+}
+function deviceNets(dev){
+  const out=[];
+  for(const i of dev.interfaces||[]) if(i.ip&&i.prefix!=null) out.push({cidr:netOf(i.ip,+i.prefix),iface:i});
+  return out;
+}
+
+// ═══════════════════════════════════════════════════════
+// Application: Layout Engine
+// ═══════════════════════════════════════════════════════
+function bfsLevels(proj,G){
+  const order=['internet','onu','router','firewall','utm','l3sw','l2sw','ap','server','nas','pc','laptop','printer'];
+  let root=null;
+  for(const t of order){ root=proj.devices.find(d=>d.type===t); if(root) break; }
+  if(!root) return {};
+  const level={[root.id]:0}; const q=[root.id];
+  while(q.length){ const c=q.shift();
+    for(const nb of G.phys[c]||[]) if(level[nb]===undefined){ level[nb]=level[c]+1; q.push(nb); } }
+  const typeLv={internet:0,onu:0,router:1,firewall:2,utm:2,l3sw:3,l2sw:4,ap:5,server:5,nas:5,pc:6,laptop:6,printer:6};
+  for(const d of proj.devices) if(level[d.id]===undefined) level[d.id]=typeLv[d.type]??6;
+  return level;
+}
+function levelLayout(proj,G,sizeFn){
+  const level=bfsLevels(proj,G);
+  const byLv={};
+  for(const d of proj.devices)(byLv[level[d.id]]=byLv[level[d.id]]||[]).push(d);
+  const keys=Object.keys(byLv).map(Number).sort((a,b)=>a-b);
+  const GX=50,GY=85,W=1250;
+  const pos={};let y=50;
+  for(const k of keys){
+    const devs=byLv[k];
+    const sizes=devs.map(sizeFn);
+    const totW=sizes.reduce((s,z)=>s+z.w,0)+(devs.length-1)*GX;
+    let x=Math.max(30,(W-totW)/2),maxH=0;
+    devs.forEach((d,i)=>{pos[d.id]={x,y,...sizes[i]};x+=sizes[i].w+GX;maxH=Math.max(maxH,sizes[i].h);});
+    y+=maxH+GY;
+  }
+  return pos;
+}
+
+// ═══════════════════════════════════════════════════════
+// Application: Validation Engine
+// ═══════════════════════════════════════════════════════
+function runValidation(silent){
+  const G=buildGraph(project);
+  const issues=[];
+  const seen={};
+  for(const d of project.devices) for(const i of d.interfaces||[]){
+    if(!i.ip) continue;
+    if(seen[i.ip]) issues.push({lv:'err',msg:`IP重複: ${i.ip} — ${seen[i.ip].name} と ${d.name}/${i.name}`,devId:d.id});
+    else seen[i.ip]={name:`${d.name}/${i.name}`,devId:d.id};
+  }
+  for(const d of project.devices) for(const i of d.interfaces||[]){
+    if(!i.gateway) continue;
+    if(!G.ipIndex[i.gateway]) issues.push({lv:'warn',msg:`Gateway不在: ${d.name}/${i.name} → ${i.gateway} を持つ機器がありません`,devId:d.id});
+    else if(i.ip&&i.prefix!=null&&!inNet(i.gateway,netOf(i.ip,+i.prefix)))
+      issues.push({lv:'err',msg:`Gateway不一致: ${d.name}/${i.name} (${i.ip}/${i.prefix}) と GW ${i.gateway} が別サブネット`,devId:d.id});
+  }
+  const usedPorts={};
+  for(const l of project.links||[]){
+    const ia=G.ifOf(l.a.deviceId,l.a.ifId), ib=G.ifOf(l.b.deviceId,l.b.ifId);
+    if(!ia||!ib){ issues.push({lv:'err',msg:`リンク不正: ${l.id} の端点が存在しません`}); continue; }
+    for(const end of [l.a,l.b]){
+      const key=end.deviceId+'/'+end.ifId;
+      if(usedPorts[key]) issues.push({lv:'err',msg:`Port重複: ${key} が複数リンクで使用されています`,devId:end.deviceId});
+      usedPorts[key]=true;
+    }
+    if(ia.ip&&ib.ip&&ia.prefix!=null&&ib.prefix!=null&&netOf(ia.ip,+ia.prefix)!==netOf(ib.ip,+ib.prefix))
+      issues.push({lv:'err',msg:`CIDR不一致: ${G.devMap[l.a.deviceId].name}/${ia.name} ↔ ${G.devMap[l.b.deviceId].name}/${ib.name}`,devId:l.a.deviceId});
+    if(ia.role==='access'&&ib.role==='access'&&ia.vlanId!=null&&ib.vlanId!=null&&ia.vlanId!==ib.vlanId)
+      issues.push({lv:'warn',msg:`VLAN不一致: ${G.devMap[l.a.deviceId].name}/${ia.name} (V${ia.vlanId}) ↔ ${G.devMap[l.b.deviceId].name}/${ib.name} (V${ib.vlanId})`,devId:l.a.deviceId});
+  }
+  const linked=new Set();
+  for(const l of project.links||[]){ linked.add(l.a.deviceId+'/'+l.a.ifId); linked.add(l.b.deviceId+'/'+l.b.ifId); }
+  for(const d of project.devices) for(const i of d.interfaces||[]){
+    if(i.role==='svi') continue;
+    if(!linked.has(d.id+'/'+i.id)) issues.push({lv:'info',msg:`未接続: ${d.name}/${i.name}`,devId:d.id});
+  }
+  // Unmanaged switch rules
+  for(const d of project.devices){
+    if(d.type!=='l2sw'||d.switchType!=='unmanaged') continue;
+    for(const i of d.interfaces||[]){
+      if(i.vlanId!=null||(i.allowedVlans||[]).length||i.role==='trunk')
+        issues.push({lv:'err',msg:`VLAN設定不可: ${d.name}/${i.name} — アンマネージドスイッチはVLANを扱えません`,devId:d.id});
+    }
+    for(const l of project.links||[]){
+      if(l.a.deviceId!==d.id&&l.b.deviceId!==d.id) continue;
+      const other=l.a.deviceId===d.id?l.b:l.a;
+      const oi=G.ifOf(other.deviceId,other.ifId);
+      if(oi&&(oi.role==='trunk'||(oi.allowedVlans||[]).length))
+        issues.push({lv:'err',msg:`トランク接続不可: ${G.devMap[other.deviceId]?.name}/${oi.name} (trunk) → ${d.name} はアンマネージドのためタグVLANを処理できません`,devId:d.id});
+    }
+  }
+  lastValidation=issues;
+  renderValidationPane();
+  const errs=issues.filter(i=>i.lv==='err').length;
+  const cnt=document.getElementById('vcnt');
+  if(errs>0){ cnt.style.display='inline-block'; cnt.textContent=errs; } else cnt.style.display='none';
+  if(!silent) log(errs?'err':'ok', errs?`検証: エラー ${errs} 件（Validationタブ参照）`:'検証OK — エラーはありません');
+}
+function renderValidationPane(){
+  const el=document.getElementById('pane-validation');
+  if(lastValidation.length===0){ el.innerHTML='<div class="empty-hint">問題は見つかりませんでした ✓</div>'; return; }
+  const colors={err:'background:#7F1D1D;color:#FCA5A5',warn:'background:#78350F;color:#FCD34D',info:'background:#1E3A5F;color:#93C5FD'};
+  const names={err:'ERROR',warn:'WARN',info:'INFO'};
+  el.innerHTML=lastValidation.map((it,i)=>
+    `<div class="vitem" onclick="jumpToIssue(${i})">
+      <span class="vlv" style="${colors[it.lv]}">${names[it.lv]}</span>
+      <span style="font-size:13.5px">${esc(it.msg)}</span>
+    </div>`).join('');
+}
+function jumpToIssue(i){
+  const it=lastValidation[i];
+  if(!it?.devId) return;
+  const dev=project.devices.find(d=>d.id===it.devId);
+  if(!dev) return;
+  selectedDev=it.devId; editIfIdx=null;
+  if(view!=='physical'){ view='physical'; renderTabs(); }
+  renderAll();
+  const wrap=document.getElementById('canvasWrap');
+  wrap.scrollTo({left:Math.max(0,dev.x*zoom-wrap.clientWidth/2+80), top:Math.max(0,dev.y*zoom-wrap.clientHeight/2+60), behavior:'smooth'});
+}
+
+// ═══════════════════════════════════════════════════════
+// Application: Explain
+// ═══════════════════════════════════════════════════════
+function longestMatch(dev,ip){
+  let best=null;
+  for(const n of deviceNets(dev)) if(inNet(ip,n.cidr)){
+    const p=+n.cidr.split('/')[1];
+    if(!best||p>best.prefix) best={prefix:p,type:'connected',iface:n.iface};
+  }
+  for(const r of dev.routes||[]){
+    const cidr=netOf(r.destination,+r.prefix);
+    if(r.prefix===0||inNet(ip,cidr)){
+      if(!best||+r.prefix>best.prefix) best={prefix:+r.prefix,type:'route',route:r};
+    }
+  }
+  return best;
+}
+function runExplain(){
+  const G=buildGraph(project);
+  const fromId=document.getElementById('expFrom').value;
+  const toId=document.getElementById('expTo').value;
+  const src=G.devMap[fromId], dst=G.devMap[toId];
+  const out=[];
+  if(!src||!dst){ exSet('<div class="empty-hint">送信元と宛先を選択してください。</div>'); return; }
+  const dstIf=selectedIface(dst.id,'expToIf');
+  if(!dstIf){ exSet(`<div class="empty-hint">${esc(dst.name)} にIPアドレスがありません。</div>`); return; }
+  const dstIp=dstIf.ip;
+  const srcIf0=selectedIface(src.id,'expFromIf');
+  out.push(`<div class="ex-card"><h4>経路: ${esc(src.name)}${srcIf0?' ('+esc(srcIf0.name)+' '+esc(srcIf0.ip)+')':''} → ${esc(dst.name)} (${esc(dstIf.name)} ${esc(dstIp)})</h4>`);
+  let cur=src; const visited=new Set(); let hop=0; let body='';
+  while(hop++<15){
+    if(visited.has(cur.id)){ body+='<p style="color:var(--danger)">✗ ループを検出しました</p>'; break; }
+    visited.add(cur.id);
+    if(cur.id===dst.id){ body+='<p style="color:var(--ok)">✓ 宛先に到達しました</p>'; break; }
+    const direct=deviceNets(cur).find(n=>inNet(dstIp,n.cidr));
+    if(direct){
+      body+=`<p><b style="color:var(--text)">${esc(cur.name)} → ${esc(dst.name)}</b><br><span style="font-size:13px">宛先 ${esc(dstIp)} は ${esc(direct.cidr)} 内なので直接到達（L2転送）</span></p>`;
+      body+='<p style="color:var(--ok)">✓ 宛先に到達しました</p>';
+      addLog('ROUTE',`${cur.name} → Directly Connected ${direct.cidr}`);
+      addLog('SUCCESS','Destination reached');
+      break;
+    }
+    let nextIp=null,why='';
+    const m=longestMatch(cur,dstIp);
+    if(m&&m.type==='route'){ nextIp=m.route.nextHop;
+      why=m.route.prefix===0?`デフォルトルートに従い ${nextIp} へ転送`:`経路 ${m.route.destination}/${m.route.prefix} に従い ${nextIp} へ転送`;
+    } else {
+      const gwIf=(cur.interfaces||[]).find(i=>i.gateway);
+      if(gwIf){ nextIp=gwIf.gateway; why=`宛先はネットワーク外なのでデフォルトゲートウェイ ${nextIp} へ転送`; }
+    }
+    if(!nextIp){ body+=`<p style="color:var(--danger)">✗ ${esc(cur.name)} に宛先への経路がありません</p>`; break; }
+    const nh=G.ipIndex[nextIp];
+    if(!nh){ body+=`<p style="color:var(--danger)">✗ ネクストホップ ${esc(nextIp)} を持つ機器が見つかりません</p>`; break; }
+    const nhDev=G.devMap[nh.deviceId];
+    body+=`<p><b style="color:var(--text)">${esc(cur.name)} → ${esc(nhDev.name)}</b> <span style="color:var(--text3)">(${esc(nextIp)})</span><br><span style="font-size:13px">${esc(why)}</span></p>`;
+    addLog('ROUTE',`${cur.name} → ${nhDev.name} (${nextIp})  ${why}`);
+    cur=nhDev;
+  }
+  out.push(body+'</div>');
+  exSet(out.join(''));
+  showBTab('explain');
+}
+function explainDevice(devId){
+  const G=buildGraph(project);
+  const d=G.devMap[devId]; if(!d) return;
+  const s=DEV_TYPES[d.type]||DEV_TYPES.pc;
+  const nets=deviceNets(d);
+  let h=`<div class="ex-card"><h4><span class="badge" style="background:${s.border}">${s.tag}</span>${esc(d.name)}</h4>`;
+  h+=`<p>${esc(ROLE_EXPLAIN[d.type]||'')}</p>`;
+  if(nets.length) h+=`<p style="margin-top:8px"><b>所属ネットワーク:</b> ${nets.map(n=>esc(n.cidr)).join(', ')}</p>`;
+  const gw=(d.interfaces||[]).find(i=>i.gateway);
+  if(gw) h+=`<p><b>デフォルトゲートウェイ:</b> ${esc(gw.gateway)} — 宛先が自ネットワーク外のとき、まずここへ送ります。</p>`;
+  if(d.routes?.length) h+=`<p><b>ルート:</b> ${d.routes.length}件保持（宛先ごとに転送先を決定します）</p>`;
+  const lks=(project.links||[]).filter(l=>l.a.deviceId===d.id||l.b.deviceId===d.id);
+  if(lks.length){
+    h+=`<p><b>物理接続:</b> `+lks.map(l=>{
+      const other=l.a.deviceId===d.id?l.b:l.a;
+      return esc(G.devMap[other.deviceId]?.name||'?')+' ('+esc(other.ifId)+')';
+    }).join(' / ')+'</p>';
+  }
+  h+='</div>';
+  exSet(h); showBTab('explain');
+}
+function exSet(html){ document.getElementById('explainOut').innerHTML=html; }
+function setExplainMode(v){
+  explainMode=v;
+  log('info',explainMode?'Explainモード ON — 機器をクリックすると説明を表示します':'Explainモード OFF');
+}
+// Project menu
+function toggleMenu(e){
+  e.stopPropagation();
+  document.getElementById('projMenu').classList.toggle('open');
+}
+function closeMenu(){ document.getElementById('projMenu').classList.remove('open'); }
+window.addEventListener('click',()=>closeMenu());
+function loadSample(){
+  project=JSON.parse(JSON.stringify(SAMPLE));
+  selectedDev=null; editIfIdx=editVlanIdx=editSsidIdx=null; collapsedNets.clear();
+  commit(); renderAll();
+  addLog('SUCCESS','サンプル構成を読み込みました（Edge Router / UTM / Core L3 / VLAN 10・20・30・99）');
+}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: helpers
+// ═══════════════════════════════════════════════════════
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+const NS_SVG='http://www.w3.org/2000/svg';
+// measure real text width via a hidden SVG text node (cached)
+let _measSvg=null,_measTxt=null;
+const _measCache=new Map();
+function textWidth(str,fontSize,weight){
+  const key=fontSize+'|'+(weight||'')+'|'+str;
+  if(_measCache.has(key)) return _measCache.get(key);
+  if(!_measSvg){
+    _measSvg=document.createElementNS(NS_SVG,'svg');
+    _measSvg.setAttribute('style','position:absolute;width:0;height:0;overflow:hidden;visibility:hidden');
+    _measTxt=document.createElementNS(NS_SVG,'text');
+    _measSvg.appendChild(_measTxt); document.body.appendChild(_measSvg);
+  }
+  _measTxt.setAttribute('font-size',fontSize);
+  _measTxt.setAttribute('font-weight',weight||'400');
+  _measTxt.setAttribute('font-family',"-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif");
+  _measTxt.textContent=str;
+  let w=0;
+  try{ w=_measTxt.getComputedTextLength(); }catch(e){ w=0; }
+  if(!w){ // headless fallback: CJK≈1em, latin≈0.55em
+    for(const c of str) w+=c.charCodeAt(0)>255?fontSize:fontSize*0.55;
+  }
+  _measCache.set(key,w);
+  return w;
+}
+// shrink text to fit maxW; returns {text,size}
+function fitLabel(str,maxW,size,minSize,weight){
+  let s=size;
+  while(s>minSize&&textWidth(str,s,weight)>maxW) s-=0.5;
+  if(textWidth(str,s,weight)<=maxW) return {text:str,size:s};
+  let t=str;
+  while(t.length>1&&textWidth(t+'…',s,weight)>maxW) t=t.slice(0,-1);
+  return {text:t+'…',size:s};
+}
+
+// ── 折れ線を角丸のパスに変換（直角の硬さを和らげる） ──
+function roundedPath(pts,r){
+  if(!pts||pts.length<2) return '';
+  if(pts.length===2) return `M${pts[0][0]},${pts[0][1]} L${pts[1][0]},${pts[1][1]}`;
+  const R=r??14;
+  let d=`M${pts[0][0]},${pts[0][1]}`;
+  for(let i=1;i<pts.length-1;i++){
+    const P=pts[i-1], C=pts[i], N=pts[i+1];
+    const l1=Math.hypot(C[0]-P[0],C[1]-P[1]);
+    const l2=Math.hypot(N[0]-C[0],N[1]-C[1]);
+    const rr=Math.min(R,l1/2,l2/2);
+    if(rr<1.2){ d+=` L${C[0]},${C[1]}`; continue; }
+    const a=[C[0]+(P[0]-C[0])/l1*rr, C[1]+(P[1]-C[1])/l1*rr];
+    const b=[C[0]+(N[0]-C[0])/l2*rr, C[1]+(N[1]-C[1])/l2*rr];
+    d+=` L${a[0].toFixed(1)},${a[1].toFixed(1)} Q${C[0]},${C[1]} ${b[0].toFixed(1)},${b[1].toFixed(1)}`;
+  }
+  const E=pts[pts.length-1];
+  d+=` L${E[0]},${E[1]}`;
+  return d;
+}
+
+// ── 折れ線の全長 f (0..1) 地点を返す（ラベル配置用） ──
+function pointAtFraction(pts,f){
+  let total=0; const seg=[];
+  for(let i=0;i<pts.length-1;i++){
+    const d=Math.hypot(pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]);
+    seg.push(d); total+=d;
+  }
+  if(total===0) return {x:pts[0][0],y:pts[0][1],vertical:false};
+  let want=total*f;
+  for(let i=0;i<seg.length;i++){
+    if(want<=seg[i]||i===seg.length-1){
+      const t=seg[i]?want/seg[i]:0;
+      const x=pts[i][0]+(pts[i+1][0]-pts[i][0])*t;
+      const y=pts[i][1]+(pts[i+1][1]-pts[i][1])*t;
+      const vertical=Math.abs(pts[i+1][1]-pts[i][1])>Math.abs(pts[i+1][0]-pts[i][0]);
+      return {x,y,vertical};
+    }
+    want-=seg[i];
+  }
+  return {x:pts[0][0],y:pts[0][1],vertical:false};
+}
+
+// ── 直交ルーター: 空きコリドーを探索して決定的に経路を決める ──
+function segFree(x1,y1,x2,y2,boxes,pad){
+  const P=pad??8;
+  const lo=v=>Math.min(v[0],v[1]), hi=v=>Math.max(v[0],v[1]);
+  for(const b of boxes){
+    const bx0=b.x-P,by0=b.y-P,bx1=b.x+b.w+P,by1=b.y+b.h+P;
+    if(Math.abs(y1-y2)<0.5){            // 水平
+      if(y1>by0&&y1<by1&&hi([x1,x2])>bx0&&lo([x1,x2])<bx1) return false;
+    } else if(Math.abs(x1-x2)<0.5){     // 垂直
+      if(x1>bx0&&x1<bx1&&hi([y1,y2])>by0&&lo([y1,y2])<by1) return false;
+    }
+  }
+  return true;
+}
+function pathFree(pts,boxes,pad){
+  for(let i=0;i<pts.length-1;i++)
+    if(!segFree(pts[i][0],pts[i][1],pts[i+1][0],pts[i+1][1],boxes,pad)) return false;
+  return true;
+}
+// 経路コスト: 総距離 + 折れ回数ペナルティ + 逆走ペナルティ
+function pathCost(pts,a2,b2){
+  let len=0,bends=0;
+  for(let i=0;i<pts.length-1;i++){
+    len+=Math.abs(pts[i+1][0]-pts[i][0])+Math.abs(pts[i+1][1]-pts[i][1]);
+    if(i>0){
+      const p=[pts[i][0]-pts[i-1][0],pts[i][1]-pts[i-1][1]];
+      const n=[pts[i+1][0]-pts[i][0],pts[i+1][1]-pts[i][1]];
+      if((Math.abs(p[0])>0.5)!==(Math.abs(n[0])>0.5)) bends++;
+    }
+  }
+  // 直線距離との差＝遠回り量。折れ数と併せて評価
+  const manhattan=Math.abs(b2[0]-a2[0])+Math.abs(b2[1]-a2[1]);
+  return (len-manhattan)*1.0 + bends*26;
+}
+// a2/b2 を結ぶ Z 経路（水平コリドー y を探索）— 最小コストの候補を返す
+function routeViaHCorridor(a2,b2,boxes,preferY,span){
+  const lo=Math.min(a2[1],b2[1]), hi=Math.max(a2[1],b2[1]);
+  const cands=[preferY];
+  // 端点の間（＝遠回りしない範囲）を優先し、その後に外側へ広げる
+  for(let k=1;k<=14;k++){ cands.push(preferY+k*12, preferY-k*12); }
+  const inside=cands.filter(y=>y>=lo-1&&y<=hi+1), outside=cands.filter(y=>y<lo-1||y>hi+1);
+  let best=null,bestC=Infinity;
+  for(const list of [inside,outside]){
+    for(const y of list){
+      if(span&&(y<span[0]||y>span[1])) continue;
+      const pts=[a2,[a2[0],y],[b2[0],y],b2];
+      if(!pathFree(pts,boxes)) continue;
+      const c=pathCost(pts,a2,b2);
+      if(c<bestC){bestC=c;best=pts;}
+    }
+    if(best) return best;   // 内側で見つかれば外側は探さない
+  }
+  return best;
+}
+// a2/b2 を結ぶ Z 経路（垂直コリドー x を探索）
+function routeViaVCorridor(a2,b2,boxes,preferX){
+  const lo=Math.min(a2[0],b2[0]), hi=Math.max(a2[0],b2[0]);
+  const cands=[preferX];
+  for(let k=1;k<=14;k++){ cands.push(preferX+k*12, preferX-k*12); }
+  const inside=cands.filter(x=>x>=lo-1&&x<=hi+1), outside=cands.filter(x=>x<lo-1||x>hi+1);
+  let best=null,bestC=Infinity;
+  for(const list of [inside,outside]){
+    for(const x of list){
+      const pts=[a2,[x,a2[1]],[x,b2[1]],b2];
+      if(!pathFree(pts,boxes)) continue;
+      const c=pathCost(pts,a2,b2);
+      if(c<bestC){bestC=c;best=pts;}
+    }
+    if(best) return best;
+  }
+  return best;
+}
+
+// ── 共通: 直交経路の障害物回避（全ビューで使用） ──
+function avoidBoxes(pts,boxes,pad){
+  const PAD=pad??10;
+  if(!boxes||!boxes.length) return pts;
+  let res=pts;
+  for(let it=0;it<6;it++){
+    let changed=false; const out=[res[0]];
+    for(let i=0;i<res.length-1;i++){
+      const [ax,ay]=res[i],[bx,by]=res[i+1];
+      const isH=Math.abs(ay-by)<0.5, isV=Math.abs(ax-bx)<0.5;
+      let blk=null;
+      if(isH||isV) for(const b of boxes){
+        const x0=b.x-PAD,y0=b.y-PAD,x1=b.x+b.w+PAD,y1=b.y+b.h+PAD;
+        if(isH){const lo=Math.min(ax,bx),hi=Math.max(ax,bx);
+          if(ay>y0&&ay<y1&&hi>x0&&lo<x1){blk={x0,y0,x1,y1};break;}}
+        else{const lo=Math.min(ay,by),hi=Math.max(ay,by);
+          if(ax>x0&&ax<x1&&hi>y0&&lo<y1){blk={x0,y0,x1,y1};break;}}
+      }
+      if(blk){changed=true;
+        if(isH){const dY=(ay-blk.y0<=blk.y1-ay)?blk.y0-2:blk.y1+2; out.push([ax,dY],[bx,dY]);}
+        else{const dX=(ax-blk.x0<=blk.x1-ax)?blk.x0-2:blk.x1+2; out.push([dX,ay],[dX,by]);}
+      }
+      out.push([bx,by]);
+    }
+    res=out; if(!changed) break;
+  }
+  return res;
+}
+// ポート表記: physical view は「Port 1」のような自然な表記に統一する
+function portDisplayName(i){
+  const n=String(i.name||i.id||'');
+  // Port1 / port 1 / Gi0/1 / Te1/0/2 → Port N
+  let m=n.match(/^(?:Port|port)\s*([0-9][0-9./]*)$/);
+  if(m) return 'Port '+m[1];
+  m=n.match(/^(?:Gi|Te|Fa|Eth|eth)\s*([0-9][0-9./]*)$/i);
+  if(m){ const num=m[1].replace(/^\d+\/\d+\//,''); return 'Port '+num; }
+  // WAN / LAN1 / eth0 / wlan0 などはそのまま（すでに意味が明確）
+  return n;
+}
+// Text fitting based on real measured width (falls back to estimate headless)
+function fitText(t,maxPx,fs){ return fitLabel(String(t??''),maxPx,fs,Math.max(6,fs-2),'600').text; }
+function fitsIn(t,maxPx,fs){ return textWidth(String(t??''),fs,'400')<=maxPx; }
+// Unified line icons (24x24 viewBox)
+const DEV_ICONS={
+  internet:'<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18"/>',
+  router:'<circle cx="12" cy="12" r="9"/><path d="M7 10l-2 2 2 2M17 10l2 2-2 2M10 7l2-2 2 2M10 17l2 2 2-2"/>',
+  l3sw:'<rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 10.5h6l-2-2M18 13.5h-6l2 2"/>',
+  l2sw:'<rect x="2" y="8" width="20" height="8" rx="2"/><path d="M6 10.5h6l-2-2M18 13.5h-6l2 2"/>',
+  firewall:'<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/>',
+  utm:'<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z"/><path d="M9 12l2 2 4-4"/>',
+  server:'<rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/><path d="M8 7.5h.01M8 16.5h.01"/>',
+  nas:'<rect x="4" y="4" width="16" height="7" rx="1.5"/><rect x="4" y="13" width="16" height="7" rx="1.5"/><circle cx="16" cy="7.5" r="1"/><circle cx="16" cy="16.5" r="1"/>',
+  pc:'<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>',
+  laptop:'<path d="M5 5h14v10H5z"/><path d="M2 19h20l-2-4H4z"/>',
+  printer:'<path d="M7 8V4h10v4"/><rect x="4" y="8" width="16" height="8" rx="2"/><path d="M7 16v4h10v-4"/>',
+  ap:'<path d="M4 9a11 11 0 0 1 16 0M7.5 12.5a6.5 6.5 0 0 1 9 0"/><circle cx="12" cy="16" r="1.8"/>',
+  onu:'<rect x="4" y="7" width="16" height="10" rx="2"/><path d="M8 12h.01M12 12h.01M16 12h.01"/>',
+};
+function devIcon(type,x,y,size,color){
+  const d=DEV_ICONS[type]||DEV_ICONS.pc;
+  return `<g transform="translate(${x},${y}) scale(${size/24})" stroke="${color}" stroke-width="2.2" fill="none" stroke-linecap="round" stroke-linejoin="round" pointer-events="none">${d}</g>`;
+}
+function ortho(x1,y1,x2,y2){
+  const my=(y1+y2)/2;
+  if(Math.abs(x1-x2)<1) return `M${x1},${y1} L${x2},${y2}`;
+  return `M${x1},${y1} L${x1},${my} L${x2},${my} L${x2},${y2}`;
+}
+// 図ビュー（SVG）か表ビュー（HTML）かの判定
+const DIAGRAM_VIEWS=['physical','hybrid','logical','port'];
+function isDiagramView(){ return DIAGRAM_VIEWS.includes(view); }
+function setZoom(z){
+  zoom=Math.max(.3,Math.min(2,Math.round(z*10)/10));
+  document.getElementById('zoomVal').textContent=Math.round(zoom*100)+'%';
+  applyZoom();
+}
+function applyZoom(){
+  const svg=document.querySelector('#canvasWrap svg');
+  if(!svg) return;
+  const w=+svg.getAttribute('width'), h=+svg.getAttribute('height');
+  svg.style.width=(w*zoom)+'px'; svg.style.height=(h*zoom)+'px';
+}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: Physical View (editor)
+// ═══════════════════════════════════════════════════════
+// ── 実機に近いフェイスプレート表現 ──
+// ポートは基本「横1列」。1列で収まらない数のときだけ2列（＝2段）に折り返す。
+const DEVW_MIN=220;
+const HEAD_H=46;                 // ヘッダー（アイコン/機器名/型番）
+const PW=52, PH=22, PGAP=6;      // ポート方形（Port 1 が入る幅）
+const PAD_X=10, PAD_B=12;
+const MAX_PER_ROW=12;            // 1段に並べる上限（超えたら2段）
+function portGrid(d){
+  const n=(d.interfaces?.length||0);
+  const rows=n>MAX_PER_ROW?2:1;                 // 基本1段、多いときだけ2段
+  const perRow=Math.ceil(n/rows)||1;
+  return {rows, perRow};
+}
+// 機器幅はポート数に応じて可変（1列配置を優先するため）
+function devBoxW(d){
+  const {perRow}=portGrid(d);
+  return Math.max(DEVW_MIN, PAD_X*2+perRow*PW+(perRow-1)*PGAP);
+}
+function devBoxH(d){
+  const {rows}=portGrid(d);
+  return HEAD_H+rows*(PH+PGAP)+PAD_B;
+}
+// ポート方形の矩形（機器内部）— 左上から行優先で番号順に並ぶ
+function portCell(d,idx){
+  const {perRow}=portGrid(d);
+  const r=Math.floor(idx/perRow), c=idx%perRow;
+  return {x:d.x+PAD_X+c*(PW+PGAP), y:d.y+HEAD_H+r*(PH+PGAP), w:PW, h:PH, row:r, col:c};
+}
+function rectsNear(a,b,gap){return a.x<b.x+b.w+gap&&b.x<a.x+a.w+gap&&a.y<b.y+b.h+gap&&b.y<a.y+a.h+gap;}
+// 実際に重なった場合のみ、最小移動量で押し出す（近接配置は許容）
+function resolveOverlap(dev){
+  let moved=false;
+  for(let it=0;it<12;it++){
+    const me={x:dev.x,y:dev.y,w:devBoxW(dev),h:devBoxH(dev)};
+    // gap=0 → 本当に矩形が交差しているときだけ対象
+    const other=project.devices.find(o=>o.id!==dev.id&&rectsNear(me,{x:o.x,y:o.y,w:devBoxW(o),h:devBoxH(o)},0));
+    if(!other) break;
+    const ob={x:other.x,y:other.y,w:devBoxW(other),h:devBoxH(other)};
+    // 4方向の押し出し量を求め、最小の方向へ最小距離だけ動かす
+    const pushR=ob.x+ob.w-me.x, pushL=me.x+me.w-ob.x;
+    const pushD=ob.y+ob.h-me.y, pushU=me.y+me.h-ob.y;
+    const m=Math.min(pushR,pushL,pushD,pushU);
+    const M=2; // 触れた状態で止めないための最小マージン
+    // グリッド丸めで再び重ならないよう、押し出す向きへ切り上げ/切り下げする
+    if(m===pushR)      dev.x=Math.ceil ((dev.x+pushR+M)/10)*10;
+    else if(m===pushL) dev.x=Math.floor((dev.x-pushL-M)/10)*10;
+    else if(m===pushD) dev.y=Math.ceil ((dev.y+pushD+M)/10)*10;
+    else               dev.y=Math.floor((dev.y-pushU-M)/10)*10;
+    dev.x=Math.max(0,dev.x); dev.y=Math.max(0,dev.y);
+    moved=true;
+  }
+  return moved;
+}
+function portPoint(d,idx){ const c=portCell(d,idx); return {x:c.x+c.w/2, y:c.y+c.h/2}; }
+
+function renderPhysical(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.classList.add('diagram');
+  const G=buildGraph(project);
+  let mw=1000,mh=700;
+  for(const d of project.devices){ mw=Math.max(mw,d.x+devBoxW(d)+100); mh=Math.max(mh,d.y+devBoxH(d)+100); }
+  const p=[];
+  p.push(`<svg xmlns="http://www.w3.org/2000/svg" class="diagram-svg" width="${mw}" height="${mh}" viewBox="0 0 ${mw} ${mh}" preserveAspectRatio="xMinYMin meet" id="physSvg">`);
+  p.push(`<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+    <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E2E8F0" stroke-width="1"/></pattern></defs>`);
+  p.push(`<rect width="${mw}" height="${mh}" fill="#F8FAFC" data-bg="1"/>`);
+  p.push(`<rect width="${mw}" height="${mh}" fill="url(#grid)" data-bg="1"/>`);
+
+  // Subnet group frames (endpoints belonging to exactly one LAN subnet) — collapsible
+  const hiddenDevNet={}; // devId -> cidr (collapsed)
+  const groupBox={};     // cidr -> {x,y,w,h}
+  for(const net of G.nets.values()){
+    if(net.type!=='lan') continue;
+    const memberIds=[...new Set(net.interfaces.map(m=>m.deviceId))]
+      .filter(id=>{const d=G.devMap[id];return d&&deviceNets(d).length===1;});
+    if(memberIds.length<1) continue;
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    for(const id of memberIds){const d=G.devMap[id];
+      x0=Math.min(x0,d.x);y0=Math.min(y0,d.y);
+      x1=Math.max(x1,d.x+devBoxW(d));y1=Math.max(y1,d.y+devBoxH(d));}
+    const P=16;
+    const collapsed=collapsedNets.has(net.cidr);
+    const lbl=`${collapsed?'▸':'▾'} ${net.cidr}${net.vlan!=null?'  VLAN'+net.vlan:''}${collapsed?'  ['+memberIds.length+'台]':''}`;
+    if(collapsed){
+      for(const id of memberIds) hiddenDevNet[id]=net.cidr;
+      const gw2=200,gh=52;
+      groupBox[net.cidr]={x:x0-P,y:y0-P,w:gw2,h:gh};
+      p.push(`<rect x="${x0-P}" y="${y0-P}" width="${gw2}" height="${gh}" rx="10" fill="${net.color}" fill-opacity="0.12" stroke="${net.color}" stroke-width="2"/>`);
+      p.push(`<text x="${x0-P+14}" y="${y0-P+30}" font-size="11" fill="${net.color}" font-weight="700" font-family="'SF Mono',Menlo,monospace" class="net-label" onclick="toggleNetCollapse('${esc(net.cidr)}')">${esc(lbl)}</text>`);
+    } else {
+      p.push(`<rect x="${x0-P}" y="${y0-P-18}" width="${x1-x0+P*2}" height="${y1-y0+P*2+18}" rx="12"
+        fill="${net.color}" fill-opacity="0.05" stroke="${net.color}" stroke-width="1.5" stroke-dasharray="7,4" pointer-events="none"/>`);
+      p.push(`<rect x="${x0-P+6}" y="${y0-P-26}" width="${lbl.length*6.4+14}" height="16" rx="4" fill="${net.color}" class="net-label" onclick="toggleNetCollapse('${esc(net.cidr)}')"/>`);
+      p.push(`<text x="${x0-P+13}" y="${y0-P-14.5}" font-size="9.5" fill="white" font-weight="700" font-family="'SF Mono',Menlo,monospace" class="net-label" onclick="toggleNetCollapse('${esc(net.cidr)}')">${esc(lbl)}</text>`);
+    }
+  }
+
+  // Obstacle boxes for cable routing (visible devices only)
+  const obstacles=project.devices.filter(d=>!hiddenDevNet[d.id])
+    .map(d=>({id:d.id,x:d.x,y:d.y,w:devBoxW(d),h:devBoxH(d)}));
+  const routeAvoid=(pts,skipIds)=>avoidBoxes(pts,obstacles.filter(b=>!skipIds.includes(b.id)));
+
+  // Per-port exit edge (4方向): face the connected peer to avoid backtracking
+  const edgeAssign={};  // devId -> ifId -> 'L'|'R'|'T'|'B'
+  const peerCX={};      // devId -> ifId -> peer center x (for edge-slot ordering)
+  for(const d of project.devices){ edgeAssign[d.id]={}; peerCX[d.id]={}; }
+  const centerOf=d=>({x:d.x+devBoxW(d)/2, y:d.y+devBoxH(d)/2});
+  for(const l of project.links||[]){
+    const da=G.devMap[l.a.deviceId], db=G.devMap[l.b.deviceId];
+    if(!da||!db) continue;
+    const ca=centerOf(da), cb=centerOf(db);
+    const dx=cb.x-ca.x, dy=cb.y-ca.y;
+    // 物理図では原則「下側から出す」。真横に大きく離れている場合のみ左右を使う。
+    // （上側は機器名やヘッダーと干渉するため使わない）
+    const strongH=Math.abs(dx)>Math.abs(dy)*2.2;
+    let eA,eB;
+    if(strongH){ eA=dx>0?'R':'L'; eB=dx>0?'L':'R'; }
+    else{
+      eA='B';                       // 送出は常に下から
+      eB=dy>0?'T':'B';              // 相手が下にいれば上面で受ける／上にいれば相手も下から
+    }
+    edgeAssign[l.a.deviceId][l.a.ifId]=eA; peerCX[l.a.deviceId][l.a.ifId]=cb.x;
+    edgeAssign[l.b.deviceId][l.b.ifId]=eB; peerCX[l.b.deviceId][l.b.ifId]=ca.x;
+  }
+  // ポート方形は機器内部（フェイスプレート）に配置し、
+  // ケーブルはポート方形 → 機器の辺 → 外部 という順に引く
+  // anchorOf: {cell: ポート方形の矩形, x,y: 機器の辺上の接続点, dx,dy: 進行方向}
+  const anchorOf={};
+  for(const d of project.devices){
+    if(hiddenDevNet[d.id]) continue;
+    anchorOf[d.id]={};
+    const h=devBoxH(d);
+    (d.interfaces||[]).forEach((i,idx)=>{
+      const e=edgeAssign[d.id][i.id]||'R';
+      const cell=portCell(d,idx);
+      const cx0=cell.x+cell.w/2, cy0=cell.y+cell.h/2;
+      let x,y,dx=0,dy=0;
+      if(e==='L'){ x=d.x;        y=cy0; dx=-1; }
+      else if(e==='R'){ x=d.x+devBoxW(d); y=cy0; dx=1; }
+      else if(e==='T'){ x=cx0; y=d.y;      dy=-1; }
+      else { x=cx0; y=d.y+h; dy=1; }
+      anchorOf[d.id][i.id]={cell,x,y,dx,dy,cx0,cy0};
+    });
+  }
+  const sideOf=(devId,ifId)=>edgeAssign[devId]?.[ifId]||'R';
+
+  const ptOf=(end)=>{
+    const d=G.devMap[end.deviceId]; if(!d) return null;
+    if(hiddenDevNet[d.id]){
+      const gb=groupBox[hiddenDevNet[d.id]];
+      return gb?{x:gb.x+gb.w,y:gb.y+gb.h/2,dx:1,dy:0,grouped:true}:null;
+    }
+    return anchorOf[end.deviceId]?.[end.ifId]||null;
+  };
+  const portLinkColor={};   // devId -> ifId -> ケーブル色（ポート方形ラベルの強調に使用）
+  const ifColor=i=>{
+    if(!i) return null;
+    if(i.ip&&i.prefix!=null){const n=G.nets.get(netOf(i.ip,+i.prefix));if(n)return n.color;}
+    if(i.vlanId!=null){for(const n of G.nets.values())if(n.vlan===i.vlanId)return n.color;}
+    return null;
+  };
+  // ── レーン割り当て: 同じ通路を通るリンクを揃えて平行化する ──
+  const drawList=[];
+  for(const l of project.links||[]){
+    if(hiddenDevNet[l.a.deviceId]&&hiddenDevNet[l.a.deviceId]===hiddenDevNet[l.b.deviceId]) continue;
+    const pa=ptOf(l.a), pb=ptOf(l.b);
+    if(!pa||!pb) continue;
+    const aH=!!pa.dx, bH=!!pb.dx;
+    const kind=(aH===bH)?(aH?'H':'V'):'L';   // H:横→横 V:縦→縦 L:L字
+    // 通路キー: 縦経路なら「渡る帯のY」、横経路なら「渡る帯のX」を50px単位で丸める
+    const corridor = kind==='V' ? 'V'+Math.round((pa.y+pb.y)/2/50)
+                   : kind==='H' ? 'H'+Math.round((pa.x+pb.x)/2/50)
+                   : 'L'+Math.round(pa.x/60)+'_'+Math.round(pb.y/60);
+    drawList.push({l,pa,pb,aH,bH,kind,corridor});
+  }
+  // 通路ごとに、進行方向に沿ってソートしてレーン番号を振る
+  const laneOf=new Map();
+  const byCorridor={};
+  for(const it of drawList)(byCorridor[it.corridor]=byCorridor[it.corridor]||[]).push(it);
+  for(const key in byCorridor){
+    const g=byCorridor[key];
+    g.sort((A,B)=> A.kind==='V' ? (A.pa.x-B.pa.x) : (A.pa.y-B.pa.y));
+    g.forEach((it,i)=>laneOf.set(it.l.id, i-(g.length-1)/2));
+  }
+
+  drawList.forEach(({l,pa,pb,aH,bH,kind})=>{
+    const wl=l.type==='wireless';
+    const ia=G.ifOf(l.a.deviceId,l.a.ifId), ib=G.ifOf(l.b.deviceId,l.b.ifId);
+    const lc=wl?'#84CC16':(ifColor(ia)||ifColor(ib)||'#475569');
+    const lane=laneOf.get(l.id)||0;
+    const MAG=26;                    // スタブ長は一定（ばらつきによる不自然な折れを排除）
+    const LANE=11;                   // レーン間隔
+    const off=routeOff('physical',l.id);
+    // stub points beyond each edge
+    const pa2=[pa.x+(pa.dx||0)*MAG, pa.y+(pa.dy||0)*MAG];
+    const pb2=[pb.x+(pb.dx||0)*MAG, pb.y+(pb.dy||0)*MAG];
+    // 自機器のポート方形と本体は障害物から除外（ここから出るため）
+    const boxes=obstacles.filter(b=>b.id!==l.a.deviceId&&b.id!==l.b.deviceId);
+    // 候補経路をすべて集め、遠回り量＋折れ数が最小のものを採用
+    const midY=(pa2[1]+pb2[1])/2+lane*LANE+off.dy;
+    const midX=(pa2[0]+pb2[0])/2+lane*LANE+off.dx;
+    const cands=[];
+    // 1) 直線（同一軸上に並んでいる場合の最短）
+    if(Math.abs(pa2[0]-pb2[0])<1.5||Math.abs(pa2[1]-pb2[1])<1.5){
+      const st=[pa2,pb2];
+      if(pathFree(st,boxes)) cands.push(st);
+    }
+    // 2) L字（1回折れ）— 出口方向と整合する方を優先評価
+    for(const e of [[pa2,[pa2[0],pb2[1]],pb2],[pa2,[pb2[0],pa2[1]],pb2]])
+      if(pathFree(e,boxes)) cands.push(e);
+    // 3) Z字（コリドー探索）
+    const zh=routeViaHCorridor(pa2,pb2,boxes,midY); if(zh) cands.push(zh);
+    const zv=routeViaVCorridor(pa2,pb2,boxes,midX); if(zv) cands.push(zv);
+    let core=null,bestC=Infinity;
+    for(const c of cands){
+      let cost=pathCost(c,pa2,pb2);
+      // 出口方向と最初の一歩が逆向きなら強くペナルティ（＝不自然な折り返し防止）
+      const step=[c[1][0]-c[0][0], c[1][1]-c[0][1]];
+      if((pa.dx&&Math.sign(step[0])===-Math.sign(pa.dx))||
+         (pa.dy&&Math.sign(step[1])===-Math.sign(pa.dy))) cost+=180;
+      // レーン指定の帯に近いほど僅かに優遇（並走の整列を保つ）
+      if(kind==='V') cost+=Math.abs(pointAtFraction(c,0.5).y-midY)*0.05;
+      if(kind==='H') cost+=Math.abs(pointAtFraction(c,0.5).x-midX)*0.05;
+      if(cost<bestC){bestC=cost;core=c;}
+    }
+    if(!core){ // どうしても空きがなければ単純Z（描画は必ず行う）
+      core=(kind==='H')
+        ? [pa2,[midX,pa2[1]],[midX,pb2[1]],pb2]
+        : [pa2,[pa2[0],midY],[pb2[0],midY],pb2];
+    }
+    let pts=[[pa.x,pa.y],...core,[pb.x,pb.y]];
+    // drop duplicate consecutive points
+    pts=pts.filter((q,i)=>i===0||Math.abs(q[0]-pts[i-1][0])>0.1||Math.abs(q[1]-pts[i-1][1])>0.1);
+    const d='M'+pts.map(q=>q.join(',')).join(' L');
+    const isSel=selectedLink===l.id;
+    p.push(`<path d="${d}" fill="none" stroke="white" stroke-width="7" stroke-linejoin="round"/>`);
+    if(isSel) p.push(`<path d="${d}" fill="none" stroke="#3B82F6" stroke-width="7" stroke-linejoin="round" opacity=".45" pointer-events="none"/>`);
+    p.push(`<path d="${d}" data-link="${esc(l.id)}" data-cable="${esc(l.id)}" fill="none" stroke="${lc}" stroke-width="${isSel?3.4:2.4}" ${wl?'stroke-dasharray="6,4"':''} stroke-linejoin="round"><title>${esc((G.devMap[l.a.deviceId]?.name||'')+'/'+l.a.ifId+' ↔ '+(G.devMap[l.b.deviceId]?.name||'')+'/'+l.b.ifId+(l.speed?'  '+l.speed:''))}</title></path>`);
+    if(isSel){
+      // 中点に削除ボタン
+      const mp=pointAtFraction(pts,0.5);
+      p.push(`<g data-delcable="${esc(l.id)}" style="cursor:pointer">
+        <circle cx="${mp.x}" cy="${mp.y}" r="10" fill="#EF4444" stroke="white" stroke-width="2"/>
+        <path d="M${mp.x-4},${mp.y-4} L${mp.x+4},${mp.y+4} M${mp.x+4},${mp.y-4} L${mp.x-4},${mp.y+4}" stroke="white" stroke-width="2" stroke-linecap="round" pointer-events="none"/>
+      </g>`);
+    }
+    // ポート方形ラベルの色を記録（後段のポート描画で使用）
+    portLinkColor[l.a.deviceId]=portLinkColor[l.a.deviceId]||{};
+    portLinkColor[l.b.deviceId]=portLinkColor[l.b.deviceId]||{};
+    portLinkColor[l.a.deviceId][l.a.ifId]=lc;
+    portLinkColor[l.b.deviceId][l.b.ifId]=lc;
+    if(l.speed){
+      // 経路の中間点（全長の50%）に配置し、両端のポートチップから離す
+      const mid=pointAtFraction(pts,0.5);
+      const CLEAR=34; // 端点から最低これだけ離す
+      const dEnd=Math.min(Math.hypot(mid.x-pa.x,mid.y-pa.y),Math.hypot(mid.x-pb.x,mid.y-pb.y));
+      if(dEnd>=CLEAR){
+        const fit=fitLabel(String(l.speed),56,8,6.5,'600');
+        const w=textWidth(fit.text,fit.size,'600')+9, h=12;
+        // 線が縦なら右側、横なら上側へオフセット
+        const lx=mid.vertical?mid.x+6:mid.x-w/2;
+        const ly=mid.vertical?mid.y-h/2:mid.y-h-3;
+        p.push(`<rect x="${lx}" y="${ly}" width="${w}" height="${h}" rx="3" fill="white" fill-opacity=".92" pointer-events="none"/>`);
+        p.push(`<text x="${lx+w/2}" y="${ly+h-3.4}" font-size="${fit.size}" fill="#64748B" font-weight="600" text-anchor="middle" pointer-events="none">${esc(fit.text)}</text>`);
+      }
+    }
+  });
+  for(const d of project.devices){
+    if(hiddenDevNet[d.id]) continue; // inside collapsed group
+    const s=DEV_TYPES[d.type]||DEV_TYPES.pc;
+    const h=devBoxH(d), W=devBoxW(d);
+    const sel=selectedDev===d.id;
+    p.push(`<g class="dev-g" data-dev="${esc(d.id)}">`);
+    // 筐体
+    p.push(`<rect x="${d.x}" y="${d.y}" width="${W}" height="${h}" rx="8" fill="#FFFFFF" stroke="${sel?'#3B82F6':s.border}" stroke-width="${sel?3:1.8}"/>`);
+    // ヘッダー（機器種別カラー）
+    p.push(`<rect x="${d.x}" y="${d.y}" width="${W}" height="26" rx="8" fill="${s.border}"/>`);
+    p.push(`<rect x="${d.x}" y="${d.y+16}" width="${W}" height="10" fill="${s.border}"/>`);
+    p.push(devIcon(d.type, d.x+8, d.y+5, 16, 'white'));
+    p.push(`<text x="${d.x+30}" y="${d.y+17.5}" font-size="10.5" fill="white" font-weight="700">${esc(fitText(d.name,W-40,10.5))}</text>`);
+    // 型番（1行だけ、控えめに）
+    const modelTxt=[d.manufacturer,d.model].filter(Boolean).join(' ');
+    if(modelTxt) p.push(`<text x="${d.x+PAD_X}" y="${d.y+38}" font-size="8" fill="#94A3B8">${esc(fitText(modelTxt,W-PAD_X*2,8))}</text>`);
+    // フェイスプレート下地
+    const {rows}=portGrid(d);
+    p.push(`<rect x="${d.x+PAD_X-4}" y="${d.y+HEAD_H-4}" width="${W-(PAD_X-4)*2}" height="${rows*(PH+PGAP)-PGAP+8}" rx="4" fill="#F1F5F9" stroke="#E2E8F0" stroke-width=".8" pointer-events="none"/>`);
+    // ポート方形（機器内部）
+    (d.interfaces||[]).forEach((i,idx)=>{
+      const c=portCell(d,idx);
+      const anc=anchorOf[d.id]?.[i.id];
+      const linked=(project.links||[]).some(l=>
+        (l.a.deviceId===d.id&&l.a.ifId===i.id)||(l.b.deviceId===d.id&&l.b.ifId===i.id));
+      const isFirst=linkFirst&&linkFirst.deviceId===d.id&&linkFirst.ifId===i.id;
+      const cableC=portLinkColor[d.id]?.[i.id];
+      const fill   = isFirst?'#F59E0B':(linked?(cableC||'#16A34A'):'#FFFFFF');
+      const stroke = isFirst?'#B45309':(linked?(cableC||'#16A34A'):'#94A3B8');
+      const txtC   = (isFirst||linked)?'#FFFFFF':'#64748B';
+      // ポート → 機器の辺 への内部リード線
+      if(anc&&linked)
+        p.push(`<line x1="${anc.cx0}" y1="${anc.cy0}" x2="${anc.x}" y2="${anc.y}" stroke="${cableC||'#16A34A'}" stroke-width="1.6" opacity=".55" pointer-events="none"/>`);
+      const fit=fitLabel(portDisplayName(i),PW-7,8,6.5,'700');
+      p.push(`<g class="port-c${linked?' used':''}" data-dev="${esc(d.id)}" data-if="${esc(i.id)}">`);
+      p.push(`<rect x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="2.5" fill="${fill}" stroke="${stroke}" stroke-width="1.3"/>`);
+      p.push(`<text x="${c.x+c.w/2}" y="${c.y+c.h/2+2.8}" font-size="${fit.size}" fill="${txtC}" font-weight="700" text-anchor="middle" pointer-events="none">${esc(fit.text)}</text>`);
+      // VLANの極小マーカー（色のみ・文字なし）
+      if(i.vlanId!=null){
+        const vc=(()=>{for(const n of G.nets.values())if(n.vlan===i.vlanId)return n.color;return '#94A3B8';})();
+        p.push(`<rect x="${c.x}" y="${c.y+c.h-2.6}" width="${c.w}" height="2.6" rx="1" fill="${vc}" pointer-events="none"/>`);
+      }
+      p.push('</g>');
+    });
+    p.push('</g>');
+  }
+  p.push('</svg>');
+  wrap.innerHTML=p.join('');
+  applyZoom();
+  attachPhysicalEvents();
+  attachCableDrag('physical');
+  attachCableHover();
+}
+// ── 機器ホバー時の詳細パネル（通常表示はすっきり、必要時のみ詳細） ──
+function showDevTip(devId,ev){
+  const tip=document.getElementById('devTip');
+  const d=project.devices.find(x=>x.id===devId);
+  if(!tip||!d){ hideDevTip(); return; }
+  const G=buildGraph(project);
+  const s=DEV_TYPES[d.type]||DEV_TYPES.pc;
+  const vlanColor=v=>{for(const n of G.nets.values())if(n.vlan===v)return n.color;return '#94A3B8';};
+  const rows=(d.interfaces||[]).map(i=>{
+    const peer=(project.links||[]).find(l=>
+      (l.a.deviceId===d.id&&l.a.ifId===i.id)||(l.b.deviceId===d.id&&l.b.ifId===i.id));
+    let peerTxt='—';
+    if(peer){
+      const o=peer.a.deviceId===d.id?peer.b:peer.a;
+      peerTxt=`${G.devMap[o.deviceId]?.name||o.deviceId} / ${o.ifId}`;
+    }
+    const vl=i.vlanId!=null?`<span class="vchip" style="background:${vlanColor(i.vlanId)}">VLAN ${i.vlanId}</span>`
+      :((i.allowedVlans||[]).length?`<span style="color:#A78BFA;font-weight:700">T[${i.allowedVlans.join(',')}]</span>`:'—');
+    return `<tr><td class="nm">${esc(i.name)}</td><td>${esc(i.ip?i.ip+'/'+(i.prefix??''):'—')}</td>
+      <td>${vl}</td><td style="font-family:inherit;color:var(--text2)">${esc(peerTxt)}</td></tr>`;
+  }).join('');
+  const meta=[];
+  if(d.hostname) meta.push('host: '+d.hostname);
+  if(d.switchType) meta.push(d.switchType==='unmanaged'?'アンマネージド':'スマートSW');
+  if(d.stp?.enabled) meta.push(`STP ${d.stp.mode||'RSTP'} (pri ${d.stp.priority??32768})`);
+  if(d.nat?.mode&&d.nat.mode!=='none') meta.push('NAT '+d.nat.mode.toUpperCase());
+  if(d.routes?.length) meta.push(`ルート ${d.routes.length}件`);
+  if((d.ssids||[]).length) meta.push('SSID: '+d.ssids.map(x=>x.name).join(', '));
+  tip.innerHTML=`<div class="ttwrap"><div class="tt"><span class="badge" style="background:${s.border}">${s.tag}</span>${esc(d.name)}</div>
+    <div class="tsub">${esc([d.manufacturer,d.model].filter(Boolean).join(' ')||'—')}</div>
+    <table><tr><th>Port</th><th>IP</th><th>VLAN</th><th>接続先</th></tr>${rows}</table>
+    ${meta.length?`<div class="meta">${esc(meta.join('  ／  '))}</div>`:''}</div>`;
+  tip.style.display='block';
+  tip.style.left='0px'; tip.style.top='0px';   // 実寸計測のため一旦リセット
+  // カーソル近傍に、キャンバス領域からはみ出さないよう配置
+  const area=document.getElementById('canvasArea').getBoundingClientRect();
+  const tw=tip.offsetWidth, th=tip.offsetHeight;
+  const cx=ev.clientX-area.left, cy=ev.clientY-area.top;
+  let x=cx+16, y=cy+14;
+  if(x+tw>area.width-8)  x=cx-tw-16;          // 右に入らなければ左へ反転
+  if(x<8)                x=Math.max(8,Math.min(cx+16,area.width-tw-8));
+  if(y+th>area.height-8) y=cy-th-14;          // 下に入らなければ上へ反転
+  if(y<8)                y=Math.max(8,area.height-th-8);
+  tip.style.left=Math.round(x)+'px'; tip.style.top=Math.round(y)+'px';
+}
+function hideDevTip(){ const t=document.getElementById('devTip'); if(t) t.style.display='none'; }
+
+function attachPhysicalEvents(){
+  const svg=document.getElementById('physSvg');
+  if(!svg) return;
+  // ホバーで詳細表示（ドラッグ中は出さない）
+  svg.addEventListener('mousemove',e=>{
+    if(drag||cbDrag||dgDrag){ hideDevTip(); return; }
+    const g=e.target.closest('.dev-g');
+    if(g) showDevTip(g.dataset.dev,e); else hideDevTip();
+  });
+  svg.addEventListener('mouseleave',hideDevTip);
+  svg.addEventListener('mousedown',e=>{
+    // ポートからドラッグして配線（離した先のポートに接続）。動かさず離せばクリック接続。
+    const port=e.target.closest('.port-c');
+    if(port){
+      const pt=svgPt(svg,e);
+      portDrag={deviceId:port.dataset.dev,ifId:port.dataset.if,
+        x0:pt.x,y0:pt.y,x:pt.x,y:pt.y,moved:false,
+        used:isPortUsed(port.dataset.dev,port.dataset.if)};
+      hideDevTip();
+      e.preventDefault(); e.stopPropagation();
+      return;
+    }
+    const g=e.target.closest('.dev-g');
+    if(g){
+      const id=g.dataset.dev;
+      selectedDev=id; editIfIdx=null; renderProps();
+      if(explainMode) explainDevice(id);
+      const dev=project.devices.find(d=>d.id===id);
+      const pt=svgPt(svg,e);
+      drag={id,dx:pt.x-dev.x,dy:pt.y-dev.y,moved:false};
+      renderPhysical();
+      e.preventDefault();
+    }
+  });
+  svg.addEventListener('click',e=>{
+    // 配線をクリックで選択（Delete / ✕ で削除）
+    const cab=e.target.closest('path[data-cable]');
+    if(cab&&!cbDrag?.moved){
+      selectedLink=(selectedLink===cab.dataset.cable)?null:cab.dataset.cable;
+      renderPhysical(); return;
+    }
+    if(e.target.dataset.bg&&!lastPanMoved&&!drag){
+      selectedDev=null; editIfIdx=null; selectedLink=null; linkFirst=null;
+      renderProps(); renderPhysical();
+    }
+  });
+  // 配線削除ボタン（選択中の配線の中点に表示）
+  svg.addEventListener('mousedown',e=>{
+    const del=e.target.closest('[data-delcable]');
+    if(del){ selectedLink=del.dataset.delcable; deleteSelectedLink(); e.stopPropagation(); }
+  },true);
+  // ポートからのドラッグ配線: ラバーバンド表示
+  svg.addEventListener('mousemove',e=>{
+    if(!portDrag) return;
+    const pt=svgPt(svg,e);
+    portDrag.x=pt.x; portDrag.y=pt.y;
+    if(Math.hypot(pt.x-portDrag.x0,pt.y-portDrag.y0)>4) portDrag.moved=true;
+    let rb=svg.querySelector('#rubber');
+    if(!rb){
+      const NS='http://www.w3.org/2000/svg';
+      rb=document.createElementNS(NS,'path');
+      rb.setAttribute('id','rubber'); rb.setAttribute('fill','none');
+      rb.setAttribute('stroke',portDrag.used?'#EF4444':'#F59E0B');
+      rb.setAttribute('stroke-width','2.4'); rb.setAttribute('stroke-dasharray','6,4');
+      rb.setAttribute('pointer-events','none');
+      svg.appendChild(rb);
+    }
+    rb.setAttribute('d',`M${portDrag.x0},${portDrag.y0} L${pt.x},${pt.y}`);
+    // 接続可能なポートの上ではハイライト
+    const over=e.target.closest('.port-c');
+    const ok=over&&!isPortUsed(over.dataset.dev,over.dataset.if)
+      &&over.dataset.dev!==portDrag.deviceId&&!portDrag.used;
+    rb.setAttribute('stroke',ok?'#16A34A':(portDrag.used?'#EF4444':'#F59E0B'));
+  });
+  // hover: highlight both endpoint ports + labels
+  let hlEls=[];
+  const clearHl=()=>{ for(const el of hlEls){ if(el._restore) el._restore(); else el.remove(); } hlEls=[]; };
+  svg.addEventListener('mouseover',e=>{
+    const pathEl=e.target.closest('path[data-cable]');
+    if(!pathEl||drag||cbDrag) return;
+    clearHl();
+    const l=(project.links||[]).find(k=>k.id===pathEl.dataset.cable);
+    if(!l) return;
+    for(const end of [l.a,l.b]){
+      const c=svg.querySelector(`circle[data-dev="${CSS.escape(end.deviceId)}"][data-if="${CSS.escape(end.ifId)}"]`);
+      if(!c) continue;
+      const oldR=c.getAttribute('r');
+      c.setAttribute('r','7.5'); c.setAttribute('stroke','#F59E0B'); c.setAttribute('stroke-width','2.5');
+      c._restore=()=>{c.setAttribute('r',oldR);c.setAttribute('stroke','white');c.setAttribute('stroke-width','1.5');delete c._restore;};
+      hlEls.push(c);
+      const dev=project.devices.find(d=>d.id===end.deviceId);
+      const iface=(dev?.interfaces||[]).find(i=>i.id===end.ifId);
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.textContent=`${dev?.name||''} / ${iface?.name||end.ifId}`;
+      t.setAttribute('x',+c.getAttribute('cx')+9);
+      t.setAttribute('y',+c.getAttribute('cy')-9);
+      t.setAttribute('font-size','10'); t.setAttribute('font-weight','700');
+      t.setAttribute('fill','#B45309'); t.setAttribute('stroke','white');
+      t.setAttribute('stroke-width','3'); t.setAttribute('paint-order','stroke');
+      t.setAttribute('pointer-events','none');
+      svg.appendChild(t); hlEls.push(t);
+    }
+  });
+  svg.addEventListener('mouseout',e=>{
+    if(e.target.closest&&e.target.closest('path[data-cable]')) clearHl();
+  });
+  // ドラッグ中はグリッドスナップせず、rAF で1フレーム1回だけ再描画（追従をなめらかに）
+  svg.addEventListener('mousemove',e=>{
+    if(!drag) return;
+    const pt=svgPt(svg,e);
+    drag.pend={x:Math.max(0,pt.x-drag.dx), y:Math.max(0,pt.y-drag.dy)};
+    drag.moved=true;
+    if(_devRaf) return;
+    _devRaf=requestAnimationFrame(()=>{
+      _devRaf=0;
+      if(!drag||!drag.pend) return;
+      const dev=project.devices.find(d=>d.id===drag.id);
+      if(!dev) return;
+      dev.x=drag.pend.x; dev.y=drag.pend.y;
+      renderPhysical();
+    });
+  });
+}
+let _devRaf=0;
+// ポートドラッグ配線の確定
+window.addEventListener('mouseup',e=>{
+  if(!portDrag) return;
+  const svg=document.getElementById('physSvg');
+  svg?.querySelector('#rubber')?.remove();
+  const target=e.target.closest?e.target.closest('.port-c'):null;
+  const pd=portDrag; portDrag=null;
+  if(pd.used&&!pd.moved){
+    const d=project.devices.find(x=>x.id===pd.deviceId);
+    const i=(d?.interfaces||[]).find(x=>x.id===pd.ifId);
+    // 使用済みポートのクリック → その配線を選択状態にする
+    const l=linkOfPort(pd.deviceId,pd.ifId);
+    selectedLink=l?l.id:null;
+    addLog('INFO',`${d?.name} / ${i?.name} は接続済み — Delete キーで配線を削除できます`);
+    renderPhysical(); return;
+  }
+  if(pd.moved){
+    if(target&&(target.dataset.dev!==pd.deviceId||target.dataset.if!==pd.ifId)){
+      if(!connectPorts({deviceId:pd.deviceId,ifId:pd.ifId},
+                       {deviceId:target.dataset.dev,ifId:target.dataset.if})) renderPhysical();
+    } else renderPhysical();
+    linkFirst=null;
+    return;
+  }
+  handlePortClick(pd.deviceId,pd.ifId);   // 動かさず離した = クリック接続
+});
+window.addEventListener('mouseup',()=>{
+  if(!drag) return;
+  if(_devRaf){ cancelAnimationFrame(_devRaf); _devRaf=0; }
+  if(drag.moved){
+    const dv=project.devices.find(d=>d.id===drag.id);
+    if(dv){
+      // 離した瞬間にグリッドへ整え、重なっていれば最小限だけ回避
+      if(drag.pend){ dv.x=Math.round(drag.pend.x/10)*10; dv.y=Math.round(drag.pend.y/10)*10; }
+      if(resolveOverlap(dv)) addLog('INFO',`${dv.name} を重ならない位置へ調整しました`);
+    }
+    drag=null; renderPhysical(); commit(); return;
+  }
+  drag=null;
+});
+function svgPt(svg,e){
+  const r=svg.getBoundingClientRect();
+  return {x:(e.clientX-r.left)/zoom,y:(e.clientY-r.top)/zoom};
+}
+// ── ポート使用状況 ──
+function isPortUsed(devId,ifId){
+  return (project.links||[]).some(l=>
+    (l.a.deviceId===devId&&l.a.ifId===ifId)||(l.b.deviceId===devId&&l.b.ifId===ifId));
+}
+function linkOfPort(devId,ifId){
+  return (project.links||[]).find(l=>
+    (l.a.deviceId===devId&&l.a.ifId===ifId)||(l.b.deviceId===devId&&l.b.ifId===ifId));
+}
+// ── 2つのポートを接続（使用済み・同一機器はブロック） ──
+function connectPorts(a,b){
+  if(a.deviceId===b.deviceId&&a.ifId===b.ifId) return false;
+  if(a.deviceId===b.deviceId){ addLog('WARNING','同じ機器のポート同士は接続できません'); return false; }
+  for(const e of [a,b]) if(isPortUsed(e.deviceId,e.ifId)){
+    const d=project.devices.find(x=>x.id===e.deviceId);
+    const i=(d?.interfaces||[]).find(x=>x.id===e.ifId);
+    addLog('WARNING',`${d?.name||e.deviceId} / ${i?.name||e.ifId} は既に接続済みです`);
+    return false;
+  }
+  const newLink={id:'k'+Date.now().toString(36),a:{...a},b:{...b},type:'wired',speed:'1G'};
+  project.links.push(newLink);
+  const da=project.devices.find(x=>x.id===a.deviceId), db=project.devices.find(x=>x.id===b.deviceId);
+  const ia=(da?.interfaces||[]).find(x=>x.id===a.ifId), ib=(db?.interfaces||[]).find(x=>x.id===b.ifId);
+  addLog('SUCCESS',`接続: ${da?.name}/${ia?.name} ↔ ${db?.name}/${ib?.name}`);
+  autoAssignIp(newLink);
+  commit(); renderAll();
+  return true;
+}
+// クリック2回での接続（1回目=起点、2回目=終点）
+function handlePortClick(devId,ifId){
+  if(isPortUsed(devId,ifId)){
+    const d=project.devices.find(x=>x.id===devId);
+    const i=(d?.interfaces||[]).find(x=>x.id===ifId);
+    addLog('WARNING',`${d?.name} / ${i?.name} は既に接続済みです（配線を選択して Delete で削除できます）`);
+    linkFirst=null; renderPhysical(); return;
+  }
+  if(!linkFirst){
+    linkFirst={deviceId:devId,ifId};
+    const d=project.devices.find(x=>x.id===devId);
+    const i=(d?.interfaces||[]).find(x=>x.id===ifId);
+    addLog('INFO',`接続元: ${d?.name} / ${i?.name} — 接続先ポートをクリック（Escで取消）`);
+    renderPhysical(); return;
+  }
+  if(linkFirst.deviceId===devId&&linkFirst.ifId===ifId){ linkFirst=null; renderPhysical(); return; }
+  const from={...linkFirst}; linkFirst=null;
+  if(!connectPorts(from,{deviceId:devId,ifId})) renderPhysical();
+}
+// ── 配線の削除 ──
+function deleteSelectedLink(){
+  if(!selectedLink) return;
+  const l=(project.links||[]).find(x=>x.id===selectedLink);
+  if(!l){ selectedLink=null; return; }
+  const da=project.devices.find(x=>x.id===l.a.deviceId), db=project.devices.find(x=>x.id===l.b.deviceId);
+  project.links=project.links.filter(x=>x.id!==selectedLink);
+  if(project.linkRoute) for(const v in project.linkRoute) delete project.linkRoute[v][selectedLink];
+  selectedLink=null;
+  addLog('INFO',`配線を削除: ${da?.name||'?'} ↔ ${db?.name||'?'}`);
+  commit(); renderAll();
+}
+
+// ── 接続時のIP自動入力（未設定時のみ・上書きしない） ──
+function nextFreeIp(cidr){
+  const [na,pfxs]=cidr.split('/'); const pfx=+pfxs;
+  if(pfx>30) return null;
+  const base=ip2int(na);
+  const size=Math.pow(2,32-pfx);
+  const used=new Set();
+  for(const d of project.devices) for(const i of d.interfaces||[])
+    if(i.ip&&inNet(i.ip,cidr)) used.add(ip2int(i.ip));
+  const fmt=n=>[n>>>24&255,n>>>16&255,n>>>8&255,n&255].join('.');
+  const start=Math.min(10,size-2);
+  for(let o=start;o<size-1;o++) if(!used.has(base+o)) return fmt(base+o);
+  for(let o=2;o<start;o++)      if(!used.has(base+o)) return fmt(base+o);
+  return null;
+}
+function autoAssignIp(link){
+  const G=buildGraph(project);
+  const AUTO_TYPES=['pc','laptop','printer','server','nas','ap'];
+  for(const [self,peer] of [[link.a,link.b],[link.b,link.a]]){
+    const dev=G.devMap[self.deviceId]; if(!dev) continue;
+    if(!AUTO_TYPES.includes(dev.type)) continue;
+    const iface=G.ifOf(self.deviceId,self.ifId);
+    if(!iface||iface.ip) continue;               // 既存値は上書きしない
+    const pi=G.ifOf(peer.deviceId,peer.ifId);
+    if(!pi) continue;
+    let cidr=null, gw=null, vlan=pi.vlanId??null;
+    if(pi.ip&&pi.prefix!=null){ cidr=netOf(pi.ip,+pi.prefix); gw=pi.ip; }   // ルーター等に直結
+    else if(pi.vlanId!=null){                                                // アクセスポート → SVIのセグメント
+      outer:
+      for(const dd of project.devices) for(const ii of dd.interfaces||[]){
+        if(ii.role==='svi'&&ii.vlanId===pi.vlanId&&ii.ip&&ii.prefix!=null){
+          cidr=netOf(ii.ip,+ii.prefix); gw=ii.ip; break outer;
+        }
+      }
+    }
+    if(!cidr){ addLog('INFO',`IP自動設定スキップ: ${dev.name}/${iface.name} — 接続先セグメントを特定できません`); continue; }
+    const ip=nextFreeIp(cidr);
+    if(!ip){ addLog('WARNING',`IP自動設定失敗: ${cidr} に空きがありません`); continue; }
+    const pfx=+cidr.split('/')[1];
+    iface.ip=ip; iface.prefix=pfx;
+    if(gw&&!iface.gateway) iface.gateway=gw;
+    if(vlan!=null&&iface.vlanId==null) iface.vlanId=vlan;
+    addLog('SUCCESS',`IP自動設定: ${dev.name}/${iface.name}`,
+      [`IP:      ${ip}/${pfx}  (セグメント ${cidr})`,
+       gw?`Gateway: ${gw}`:null,
+       vlan!=null?`VLAN:    ${vlan}`:null].filter(Boolean));
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// Diagram drag engine (hybrid / logical views)
+// ═══════════════════════════════════════════════════════
+let dgDrag=null;
+function attachDiagramDrag(viewName){
+  const svg=document.querySelector('#canvasWrap svg'); if(!svg) return;
+  svg.addEventListener('mousedown',e=>{
+    const g=e.target.closest('[data-drag]'); if(!g) return;
+    const [px,py]=g.dataset.pos.split(',').map(Number);
+    const r=svg.getBoundingClientRect();
+    dgDrag={view:viewName,key:g.dataset.drag,
+      dx:(e.clientX-r.left)/zoom-px, dy:(e.clientY-r.top)/zoom-py, moved:false};
+    e.preventDefault(); e.stopPropagation();
+  });
+}
+let _dgRaf=0;
+window.addEventListener('mousemove',e=>{
+  if(!dgDrag) return;
+  const svg=document.querySelector('#canvasWrap svg'); if(!svg) return;
+  const r=svg.getBoundingClientRect();
+  dgDrag.pend={
+    x:Math.max(0,(e.clientX-r.left)/zoom-dgDrag.dx),
+    y:Math.max(0,(e.clientY-r.top)/zoom-dgDrag.dy)
+  };
+  dgDrag.moved=true;
+  if(_dgRaf) return;
+  _dgRaf=requestAnimationFrame(()=>{
+    _dgRaf=0;
+    if(!dgDrag||!dgDrag.pend) return;
+    project.layout=project.layout||{};
+    (project.layout[dgDrag.view]=project.layout[dgDrag.view]||{})[dgDrag.key]={...dgDrag.pend};
+    renderView();
+  });
+});
+window.addEventListener('mouseup',()=>{
+  if(!dgDrag) return;
+  if(_dgRaf){ cancelAnimationFrame(_dgRaf); _dgRaf=0; }
+  if(dgDrag.moved&&dgDrag.pend){
+    project.layout=project.layout||{};
+    (project.layout[dgDrag.view]=project.layout[dgDrag.view]||{})[dgDrag.key]={
+      x:Math.round(dgDrag.pend.x/10)*10, y:Math.round(dgDrag.pend.y/10)*10};
+    dgDrag=null; renderView(); commit(); return;
+  }
+  dgDrag=null;
+});
+function applyLayoutOverride(viewName,pos){
+  const ov=project.layout?.[viewName]||{};
+  for(const k in ov){ if(pos[k]){ pos[k].x=ov[k].x; pos[k].y=ov[k].y; } }
+}
+
+// ═══════════════════════════════════════════════════════
+// Cable drag engine (all views) — drag a cable to shift its mid route
+// ═══════════════════════════════════════════════════════
+let cbDrag=null;
+function routeOff(view,key){
+  const o=project.linkRoute?.[view]?.[key];
+  return o?{dx:o.dx||0,dy:o.dy||0}:{dx:0,dy:0};
+}
+function attachCableDrag(viewName){
+  const svg=document.querySelector('#canvasWrap svg'); if(!svg) return;
+  svg.addEventListener('mousedown',e=>{
+    const el=e.target.closest('[data-cable]'); if(!el) return;
+    const key=el.dataset.cable;
+    const r=svg.getBoundingClientRect();
+    const cur=routeOff(viewName,key);
+    cbDrag={view:viewName,key,
+      sx:(e.clientX-r.left)/zoom, sy:(e.clientY-r.top)/zoom,
+      ox:cur.dx, oy:cur.dy, moved:false};
+    e.preventDefault(); e.stopPropagation();
+  });
+}
+// ドラッグ中は requestAnimationFrame で再描画をまとめ、スナップも掛けない（追従をなめらかに）
+let _cbRaf=0;
+window.addEventListener('mousemove',e=>{
+  if(!cbDrag) return;
+  const svg=document.querySelector('#canvasWrap svg'); if(!svg) return;
+  const r=svg.getBoundingClientRect();
+  cbDrag.pend={
+    dx:(e.clientX-r.left)/zoom-cbDrag.sx+cbDrag.ox,
+    dy:(e.clientY-r.top)/zoom-cbDrag.sy+cbDrag.oy
+  };
+  cbDrag.moved=true;
+  if(_cbRaf) return;                      // 1フレームに1回だけ描画
+  _cbRaf=requestAnimationFrame(()=>{
+    _cbRaf=0;
+    if(!cbDrag||!cbDrag.pend) return;
+    project.linkRoute=project.linkRoute||{};
+    (project.linkRoute[cbDrag.view]=project.linkRoute[cbDrag.view]||{})[cbDrag.key]={...cbDrag.pend};
+    renderView();
+  });
+});
+window.addEventListener('mouseup',()=>{
+  if(!cbDrag) return;
+  if(_cbRaf){ cancelAnimationFrame(_cbRaf); _cbRaf=0; }
+  if(cbDrag.moved&&cbDrag.pend){
+    // 離した瞬間だけグリッドに整える
+    project.linkRoute=project.linkRoute||{};
+    (project.linkRoute[cbDrag.view]=project.linkRoute[cbDrag.view]||{})[cbDrag.key]={
+      dx:Math.round(cbDrag.pend.dx/5)*5, dy:Math.round(cbDrag.pend.dy/5)*5};
+    cbDrag=null; renderView(); commit(); return;
+  }
+  cbDrag=null;
+});
+// ── Cable hover highlight: hovered cable cloned into a top overlay layer ──
+function attachCableHover(){
+  const svg=document.querySelector('#canvasWrap svg'); if(!svg) return;
+  // dedicated overlay layer, always last child = always on top
+  let layer=svg.querySelector('#hlLayer');
+  if(!layer){
+    layer=document.createElementNS(NS_SVG,'g');
+    layer.setAttribute('id','hlLayer');
+    svg.appendChild(layer);
+  }
+  const clear=()=>{
+    svg.classList.remove('hl-on');
+    svg.querySelectorAll('g.dev-g.hl').forEach(e=>e.classList.remove('hl'));
+    while(layer.firstChild) layer.removeChild(layer.firstChild);
+  };
+  const addTag=(x,y,txt,anchorRight)=>{
+    const fit=fitLabel(txt,260,10.5,8,'600');
+    const w=textWidth(fit.text,fit.size,'600')+14, h=18;
+    const bx=anchorRight?x-w-11:x+11, by=y-h/2;
+    const bg=document.createElementNS(NS_SVG,'rect');
+    bg.setAttribute('x',bx);bg.setAttribute('y',by);bg.setAttribute('width',w);bg.setAttribute('height',h);
+    bg.setAttribute('rx','5');bg.setAttribute('fill','#0F172A');bg.setAttribute('opacity','.95');
+    bg.setAttribute('stroke','#F59E0B');bg.setAttribute('stroke-width','1');
+    const tx=document.createElementNS(NS_SVG,'text');
+    tx.setAttribute('x',bx+7);tx.setAttribute('y',by+h/2+3.6);
+    tx.setAttribute('font-size',fit.size);tx.setAttribute('fill','#F8FAFC');tx.setAttribute('font-weight','600');
+    tx.textContent=fit.text;
+    layer.appendChild(bg);layer.appendChild(tx);
+  };
+  svg.addEventListener('mouseover',e=>{
+    const path=e.target.closest('[data-cable]');
+    if(!path||cbDrag||drag||dgDrag) return;
+    const key=path.dataset.cable;
+    clear();
+    svg.classList.add('hl-on');
+    // clone every stroke of this cable into overlay (trunk = multiple bands)
+    const strokes=[...svg.querySelectorAll(`[data-cable="${CSS.escape(key)}"]`)];
+    for(const src of strokes){
+      const halo=src.cloneNode(false);
+      halo.removeAttribute('data-cable');halo.removeAttribute('data-link');
+      halo.setAttribute('stroke','#FFFFFF');halo.setAttribute('stroke-width','7.5');
+      halo.setAttribute('opacity','.9');halo.removeAttribute('stroke-dasharray');
+      const cp=src.cloneNode(false);
+      cp.removeAttribute('data-cable');cp.removeAttribute('data-link');
+      cp.setAttribute('stroke-width','3.6');cp.setAttribute('opacity','1');
+      layer.appendChild(halo);layer.appendChild(cp);
+    }
+    const link=(project.links||[]).find(l=>l.id===key);
+    if(link){
+      for(const dn of [link.a.deviceId,link.b.deviceId])
+        svg.querySelector(`g.dev-g[data-dev="${CSS.escape(dn)}"]`)?.classList.add('hl');
+      const base=strokes[0];
+      let p0,p1;
+      try{ p0=base.getPointAtLength(0); p1=base.getPointAtLength(base.getTotalLength()); }catch(err){ return; }
+      const ends=[[link.a,p0],[link.b,p1]];
+      for(const [end,pt] of ends){
+        const dev=project.devices.find(x=>x.id===end.deviceId);
+        const iface=(dev?.interfaces||[]).find(i=>i.id===end.ifId);
+        const ring=document.createElementNS(NS_SVG,'circle');
+        ring.setAttribute('cx',pt.x);ring.setAttribute('cy',pt.y);ring.setAttribute('r','8');
+        ring.setAttribute('fill','none');ring.setAttribute('stroke','#F59E0B');ring.setAttribute('stroke-width','2.6');
+        layer.appendChild(ring);
+        const info=[iface?.name||end.ifId,
+          iface?.ip?`${iface.ip}/${iface.prefix??''}`:null,
+          iface?.vlanId!=null?`VLAN${iface.vlanId}`:null,
+          (iface?.allowedVlans||[]).length?`Trunk[${iface.allowedVlans.join(',')}]`:null
+        ].filter(Boolean).join('  ');
+        addTag(pt.x,pt.y,`${dev?.name||''}  ${info}`, pt.x>(+svg.getAttribute('width')||1200)*0.72);
+      }
+    }
+  });
+  svg.addEventListener('mouseout',e=>{
+    if(!e.target.closest('[data-cable]')) return;
+    const to=e.relatedTarget;
+    if(to&&to.closest&&to.closest('[data-cable]')) return;
+    clear();
+  });
+}
+
+// orthogonal joint helper: inserts an elbow between a→b if not axis-aligned
+function joint(a,b,horizFirst){
+  if(Math.abs(a[0]-b[0])<0.1||Math.abs(a[1]-b[1])<0.1) return [];
+  return horizFirst?[[b[0],a[1]]]:[[a[0],b[1]]];
+}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: Hybrid View
+// ═══════════════════════════════════════════════════════
+function renderHybrid(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.classList.add('diagram');
+  const G=buildGraph(project);
+  const level=bfsLevels(project,G);
+  const byLv={};
+  for(const d of project.devices)(byLv[level[d.id]]=byLv[level[d.id]]||[]).push(d);
+  const netKeyOf=d=>{
+    const i=(d.interfaces||[]).find(x=>x.ip&&x.role!=='wan');
+    if(i) return netOf(i.ip,+(i.prefix??24));
+    const a=(d.interfaces||[]).find(x=>x.vlanId!=null);
+    return a?('vlan'+String(a.vlanId).padStart(4,'0')):'~';
+  };
+  const sizeFn=d=>({w:210,h:36+(d.interfaces?.length||0)*17+8});
+  const keys=Object.keys(byLv).map(Number).sort((a,b)=>a-b);
+  const GX=48,GY=100,W=1400;
+  const pos={};let y=54;
+  for(const k of keys){
+    const row=byLv[k].slice().sort((a,b)=>netKeyOf(a)<netKeyOf(b)?-1:netKeyOf(a)>netKeyOf(b)?1:0);
+    const sizes=row.map(sizeFn);
+    const totW=sizes.reduce((s,z)=>s+z.w,0)+(row.length-1)*GX;
+    let x=Math.max(26,(W-totW)/2),maxH=0;
+    row.forEach((d,i)=>{pos[d.id]={x,y,...sizes[i]};x+=sizes[i].w+GX;maxH=Math.max(maxH,sizes[i].h);});
+    y+=maxH+GY;
+  }
+  applyLayoutOverride('hybrid',pos);
+  let CW=1400,CH=y+30;
+  for(const k in pos){CW=Math.max(CW,pos[k].x+pos[k].w+40);CH=Math.max(CH,pos[k].y+pos[k].h+60);}
+  const p=[];
+  p.push(`<svg xmlns="http://www.w3.org/2000/svg" class="diagram-svg" width="${CW}" height="${CH}" viewBox="0 0 ${CW} ${CH}" preserveAspectRatio="xMinYMin meet">`);
+  p.push(`<rect width="${CW}" height="${CH}" fill="#F8FAFC"/>`);
+  // Subnet frames
+  for(const net of G.nets.values()){
+    if(net.type!=='lan') continue;
+    const memberIds=[...new Set(net.interfaces.map(m=>m.deviceId))]
+      .filter(id=>{const d=G.devMap[id];return d&&deviceNets(d).length===1&&pos[id];});
+    if(memberIds.length===0) continue;
+    let x0=1e9,y0=1e9,x1=-1e9,y1=-1e9;
+    for(const id of memberIds){const z=pos[id];
+      x0=Math.min(x0,z.x);y0=Math.min(y0,z.y);x1=Math.max(x1,z.x+z.w);y1=Math.max(y1,z.y+z.h);}
+    const P=14;
+    const gwIp=(()=>{for(const m of net.interfaces){const i=G.ifOf(m.deviceId,m.ifId);
+      if(i?.role==='svi') return i.ip;}
+      for(const id of memberIds){const d=G.devMap[id];
+        for(const i of d.interfaces||[]) if(i.gateway&&inNet(i.gateway,net.cidr)) return i.gateway;}
+      return null;})();
+    p.push(`<rect x="${x0-P}" y="${y0-P-16}" width="${x1-x0+P*2}" height="${y1-y0+P*2+16}" rx="12"
+      fill="${net.color}" fill-opacity="0.06" stroke="${net.color}" stroke-width="1.5" stroke-dasharray="7,4"/>`);
+    const lbl=`${net.cidr}${net.vlan!=null?'  VLAN'+net.vlan:''}${gwIp?'  GW '+gwIp:''}`;
+    p.push(`<rect x="${x0-P+6}" y="${y0-P-24}" width="${lbl.length*6.4+14}" height="16" rx="4" fill="${net.color}"/>`);
+    p.push(`<text x="${x0-P+13}" y="${y0-P-12.5}" font-size="9.5" fill="white" font-weight="700" font-family="'SF Mono',Menlo,monospace">${esc(lbl)}</text>`);
+  }
+  const portPt2=(devId,ifId,side)=>{
+    const z=pos[devId];const d=G.devMap[devId];
+    const idx=(d?.interfaces||[]).findIndex(i=>i.id===ifId);
+    if(!z||idx<0) return null;
+    return {x:side==='l'?z.x:z.x+z.w,y:z.y+36+idx*17+8};
+  };
+  const ifNetColor=i=>{
+    if(!i) return null;
+    if(i.ip&&i.prefix!=null){const n=G.nets.get(netOf(i.ip,+i.prefix));if(n)return n.color;}
+    if(i.vlanId!=null){for(const n of G.nets.values())if(n.vlan===i.vlanId)return n.color;}
+    return null;
+  };
+  const vlanColor=v=>{for(const n of G.nets.values())if(n.vlan===v)return n.color;return '#94A3B8';};
+  const hbBoxes=project.devices.filter(d=>pos[d.id]).map(d=>({id:d.id,x:pos[d.id].x,y:pos[d.id].y,w:pos[d.id].w,h:pos[d.id].h}));
+  for(const l of project.links||[]){
+    const za=pos[l.a.deviceId],zb=pos[l.b.deviceId];
+    if(!za||!zb) continue;
+    const aLeft=za.x+za.w/2>zb.x+zb.w/2;
+    const pa=portPt2(l.a.deviceId,l.a.ifId,aLeft?'l':'r');
+    const pb=portPt2(l.b.deviceId,l.b.ifId,aLeft?'r':'l');
+    if(!pa||!pb) continue;
+    const ia=G.ifOf(l.a.deviceId,l.a.ifId),ib=G.ifOf(l.b.deviceId,l.b.ifId);
+    const wl=l.type==='wireless';
+    const trunkVlans=(ia?.allowedVlans?.length?ia.allowedVlans:ib?.allowedVlans)||[];
+    const color=ifNetColor(ia)||ifNetColor(ib)||'#64748B';
+    const ext=24;
+    const roff=routeOff('hybrid',l.id);
+    const ax=(aLeft?pa.x-ext:pa.x+ext)+roff.dx, bx=(aLeft?pb.x+ext:pb.x-ext)+roff.dx;
+    const my=(pa.y+pb.y)/2+roff.dy;
+    // 障害物回避を適用したベース経路（手動オフセット後も継続）
+    const basePts=avoidBoxes([[pa.x,pa.y],[ax,pa.y],[ax,my],[bx,my],[bx,pb.y],[pb.x,pb.y]],
+                             hbBoxes.filter(b=>b.id!==l.a.deviceId&&b.id!==l.b.deviceId));
+    const mkPath=o=>'M'+basePts.map(([qx,qy])=>`${qx},${qy+o}`).join(' L');
+    if(trunkVlans.length>0){
+      const spread=(trunkVlans.length-1)*4;
+      p.push(`<path d="${mkPath(0)}" fill="none" stroke="white" stroke-width="${spread+9}" stroke-linejoin="round"/>`);
+      trunkVlans.forEach((v,vi)=>{
+        const off=(vi-(trunkVlans.length-1)/2)*4;
+        p.push(`<path d="${mkPath(off)}" data-cable="${esc(l.id)}" fill="none" stroke="${vlanColor(v)}" stroke-width="2.5" stroke-linejoin="round" opacity=".9"/>`);
+      });
+      const lbl='Trunk: VLAN '+trunkVlans.join(', ');
+      const mp=pointAtFraction(basePts,0.5);
+      const fit=fitLabel(lbl,150,8,6.5,'700');
+      const lw=textWidth(fit.text,fit.size,'700')+11, lh=12.5;
+      const lx=mp.vertical?mp.x+8:mp.x-lw/2, ly=mp.vertical?mp.y-lh/2:mp.y-lh-4;
+      p.push(`<rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="white" stroke="#CBD5E1" stroke-width=".8"/>`);
+      p.push(`<text x="${lx+lw/2}" y="${ly+lh-3.6}" font-size="${fit.size}" fill="#475569" font-weight="700" text-anchor="middle">${esc(fit.text)}</text>`);
+    } else {
+      const d=mkPath(0);
+      p.push(`<path d="${d}" fill="none" stroke="white" stroke-width="6.5" stroke-linejoin="round"/>`);
+      p.push(`<path d="${d}" data-cable="${esc(l.id)}" fill="none" stroke="${color}" stroke-width="2.2" ${wl?'stroke-dasharray="6,4"':''} stroke-linejoin="round" opacity=".92"/>`);
+      if(l.speed){
+        const mp=pointAtFraction(basePts,0.5);
+        const dEnd=Math.min(Math.hypot(mp.x-pa.x,mp.y-pa.y),Math.hypot(mp.x-pb.x,mp.y-pb.y));
+        if(dEnd>=30){
+          const fit=fitLabel(String(l.speed),56,8,6.5,'600');
+          const lw=textWidth(fit.text,fit.size,'600')+9, lh=11.5;
+          const lx=mp.vertical?mp.x+7:mp.x-lw/2, ly=mp.vertical?mp.y-lh/2:mp.y-lh-3;
+          p.push(`<rect x="${lx}" y="${ly}" width="${lw}" height="${lh}" rx="3" fill="white" fill-opacity=".92"/>`);
+          p.push(`<text x="${lx+lw/2}" y="${ly+lh-3.2}" font-size="${fit.size}" fill="${color}" font-weight="600" text-anchor="middle">${esc(fit.text)}</text>`);
+        }
+      }
+    }
+  }
+  for(const d of project.devices){
+    const z=pos[d.id];if(!z)continue;
+    const s=DEV_TYPES[d.type]||DEV_TYPES.pc;
+    p.push(`<g class="dev-g" data-drag="${esc(d.id)}" data-pos="${z.x},${z.y}">`);
+    p.push(`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="9" fill="white" stroke="${s.border}" stroke-width="2"/>`);
+    p.push(`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="24" rx="9" fill="${s.bg}"/>`);
+    p.push(`<rect x="${z.x}" y="${z.y+14}" width="${z.w}" height="10" fill="${s.bg}"/>`);
+    p.push(`<line x1="${z.x}" y1="${z.y+24}" x2="${z.x+z.w}" y2="${z.y+24}" stroke="${s.border}" stroke-width="1"/>`);
+    p.push(`<rect x="${z.x+6}" y="${z.y+5}" width="30" height="14" rx="4" fill="${s.border}"/>`);
+    p.push(`<text x="${z.x+21}" y="${z.y+15}" font-size="8" fill="white" font-weight="700" text-anchor="middle">${s.tag}</text>`);
+    p.push(devIcon(d.type, z.x+40, z.y+5, 14, s.border));
+    p.push(`<text x="${z.x+58}" y="${z.y+16}" font-size="10.5" fill="#1E293B" font-weight="700">${esc(fitText(d.name,z.w-66,10.5))}</text>`);
+    (d.interfaces||[]).forEach((i,idx)=>{
+      const ry=z.y+36+idx*17+8;
+      const nc=ifNetColor(i);
+      const linked=(project.links||[]).some(l=>
+        (l.a.deviceId===d.id&&l.a.ifId===i.id)||(l.b.deviceId===d.id&&l.b.ifId===i.id));
+      if(i.role!=='svi'){
+        p.push(`<circle cx="${z.x}" cy="${ry}" r="3.8" fill="${linked?(nc||'#16A34A'):'#E2E8F0'}" stroke="white" stroke-width="1.2"/>`);
+        p.push(`<circle cx="${z.x+z.w}" cy="${ry}" r="3.8" fill="${linked?(nc||'#16A34A'):'#E2E8F0'}" stroke="white" stroke-width="1.2"/>`);
+      }
+      // measured, right-boundary aware layout
+      const RIGHT=z.x+z.w-(i.role==='svi'?22:8);
+      let tx=z.x+9;
+      const nm2=fitText(i.name,62,8.5);
+      p.push(`<text x="${tx}" y="${ry+3}" font-size="8.5" fill="#0F172A" font-weight="${i.role==='svi'?'700':'600'}">${esc(nm2)}</text>`);
+      tx+=textWidth(nm2,8.5,'600')+6;
+      if(i.ip){
+        const iptxt=`${i.ip}/${i.prefix??''}`;
+        const w=textWidth(iptxt,8.5,'600');
+        if(tx+w<=RIGHT){
+          p.push(`<text x="${tx}" y="${ry+3}" font-size="8.5" fill="${nc||'#0369A1'}" font-family="'SF Mono',Menlo,monospace" font-weight="600">${esc(iptxt)}</text>`);
+          tx+=w+6;
+        }
+      }
+      if(i.vlanId!=null){
+        const lbl='VLAN '+i.vlanId, w=textWidth(lbl,7.5,'700')+8;
+        if(tx+w<=RIGHT){
+          p.push(`<rect x="${tx}" y="${ry-6}" width="${w}" height="11" rx="3" fill="${vlanColor(i.vlanId)}"/>`);
+          p.push(`<text x="${tx+w/2}" y="${ry+2.5}" font-size="7.5" fill="white" font-weight="700" text-anchor="middle">${lbl}</text>`);
+          tx+=w+5;
+        }
+      }
+      if((i.allowedVlans||[]).length){
+        const lbl=`Trunk ${i.allowedVlans.join(',')}`, w=textWidth(lbl,7.5,'700');
+        if(tx+w<=RIGHT){
+          p.push(`<text x="${tx}" y="${ry+3}" font-size="7.5" fill="#7C3AED" font-weight="700">${esc(lbl)}</text>`);
+          tx+=w+6;
+        }
+      }
+      if(i.gateway){
+        const lbl='GW '+i.gateway, w=textWidth(lbl,7.5,'400');
+        if(tx+w<=RIGHT) p.push(`<text x="${tx}" y="${ry+3}" font-size="7.5" fill="#94A3B8">${esc(lbl)}</text>`);
+      }
+      if(i.role==='svi'&&nc){
+        p.push(`<circle cx="${z.x+z.w-11}" cy="${ry}" r="5" fill="${nc}" stroke="white" stroke-width="1.3" stroke-dasharray="2,1.5"/>`);
+        p.push(`<text x="${z.x+z.w-11}" y="${ry+2.5}" font-size="6.5" fill="white" font-weight="700" text-anchor="middle">.${esc(String(i.ip||'').split('.').pop())}</text>`);
+      }
+    });
+    p.push('</g>');
+  }
+  p.push('</svg>');
+  wrap.innerHTML=p.join('');
+  applyZoom();
+  attachDiagramDrag('hybrid');
+  attachCableDrag('hybrid');
+  attachCableHover();
+}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: Logical View
+// ═══════════════════════════════════════════════════════
+function renderLogical(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.classList.add('diagram');
+  const G=buildGraph(project);
+  const nodes=[];const nodeIdx={};
+  const addNode=n=>{nodeIdx[n.key]=nodes.length;nodes.push(n);};
+  for(const d of project.devices){
+    if(deviceNets(d).length>0||d.type==='internet') addNode({key:'d:'+d.id,kind:'dev',dev:d});
+  }
+  for(const n of G.nets.values()) addNode({key:'n:'+n.cidr,kind:'net',net:n});
+  const adj={};nodes.forEach(n=>adj[n.key]=[]);
+  for(const n of G.nets.values()) for(const m of n.interfaces){
+    const dk='d:'+m.deviceId,nk='n:'+n.cidr;
+    if(nodeIdx[dk]!=null){adj[dk].push(nk);adj[nk].push(dk);}
+  }
+  const rootDev=project.devices.find(d=>d.type==='internet')||project.devices[0];
+  const rootKey='d:'+(rootDev?.id);
+  const level={};
+  if(nodeIdx[rootKey]!=null){level[rootKey]=0;const q=[rootKey];
+    while(q.length){const c=q.shift();for(const nb of adj[c])if(level[nb]===undefined){level[nb]=level[c]+1;q.push(nb);}}}
+  let maxLv=0;for(const k in level)maxLv=Math.max(maxLv,level[k]);
+  for(const n of nodes)if(level[n.key]===undefined)level[n.key]=++maxLv;
+  const byLv={};
+  for(const n of nodes)(byLv[level[n.key]]=byLv[level[n.key]]||[]).push(n);
+  const keys=Object.keys(byLv).map(Number).sort((a,b)=>a-b);
+  const W=1250,GX=40,GY=75;
+  const pos={};let y=45;
+  for(const k of keys){
+    const row=byLv[k];
+    const sizes=row.map(n=>n.kind==='dev'?{w:150,h:48}:{w:185,h:44});
+    const totW=sizes.reduce((s,z)=>s+z.w,0)+(row.length-1)*GX;
+    let x=Math.max(20,(W-totW)/2),maxH=0;
+    row.forEach((n,i)=>{pos[n.key]={x,y,...sizes[i]};x+=sizes[i].w+GX;maxH=Math.max(maxH,sizes[i].h);});
+    y+=maxH+GY;
+  }
+  applyLayoutOverride('logical',pos);
+  let H=y+40, W2=Math.max(W,900);
+  for(const k in pos){H=Math.max(H,pos[k].y+pos[k].h+50);W2=Math.max(W2,pos[k].x+pos[k].w+40);}
+  const p=[];
+  p.push(`<svg xmlns="http://www.w3.org/2000/svg" class="diagram-svg" width="${W2}" height="${H}" viewBox="0 0 ${W2} ${H}" preserveAspectRatio="xMinYMin meet">`);
+  p.push(`<rect width="${W2}" height="${H}" fill="#F5F3FF"/>`);
+  for(const n of G.nets.values()){
+    const nk='n:'+n.cidr,np=pos[nk];if(!np)continue;
+    for(const m of n.interfaces){
+      const dp=pos['d:'+m.deviceId];if(!dp)continue;
+      const top=dp.y<np.y?dp:np,bot=dp.y<np.y?np:dp;
+      const ckey=n.cidr+'|'+m.deviceId+'|'+m.ifId;
+      const roff=routeOff('logical',ckey);
+      const x1=top.x+top.w/2, y1=top.y+top.h, x2=bot.x+bot.w/2, y2=bot.y;
+      let lpts;
+      if(roff.dx){
+        // dx あり: 中間に縦通しレーンを作るドッグレッグ（dx が横方向に効く）
+        const mx=(x1+x2)/2+roff.dx;
+        const q=Math.max(14,Math.abs(y2-y1)*0.28);
+        const ya=y1+q+roff.dy, yb=y2-q+roff.dy;
+        lpts=[[x1,y1],[x1,ya],[mx,ya],[mx,yb],[x2,yb],[x2,y2]];
+      } else {
+        const my=(y1+y2)/2+roff.dy;
+        lpts=(Math.abs(x1-x2)<1&&!roff.dy)
+          ? [[x1,y1],[x2,y2]]
+          : [[x1,y1],[x1,my],[x2,my],[x2,y2]];
+      }
+      lpts=lpts.filter((q2,i)=>i===0||Math.abs(q2[0]-lpts[i-1][0])>0.1||Math.abs(q2[1]-lpts[i-1][1])>0.1);
+      const d='M'+lpts.map(q2=>q2.join(',')).join(' L');
+      p.push(`<path d="${d}" fill="none" stroke="white" stroke-width="6"/>`);
+      p.push(`<path d="${d}" data-cable="${esc(ckey)}" fill="none" stroke="${n.color}" stroke-width="2.2" opacity=".85"/>`);
+      const iface=G.ifOf(m.deviceId,m.ifId);
+      if(iface?.ip){
+        p.push(`<text x="${dp.x+dp.w/2+6}" y="${top===dp?dp.y+dp.h+13:dp.y-6}" font-size="8" fill="${n.color}" font-weight="600">.${iface.ip.split('.').pop()}</text>`);
+      }
+    }
+  }
+  for(const n of nodes){
+    const z=pos[n.key];if(!z)continue;
+    p.push(`<g class="dev-g" data-drag="${esc(n.key)}" data-pos="${z.x},${z.y}">`);
+    if(n.kind==='dev'){
+      const s=DEV_TYPES[n.dev.type]||DEV_TYPES.pc;
+      p.push(`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="${s.bg}" stroke="${s.border}" stroke-width="2"/>`);
+      p.push(`<rect x="${z.x+6}" y="${z.y+7}" width="30" height="14" rx="4" fill="${s.border}"/>`);
+      p.push(`<text x="${z.x+21}" y="${z.y+17}" font-size="8" fill="white" font-weight="700" text-anchor="middle">${s.tag}</text>`);
+      p.push(`<text x="${z.x+z.w/2}" y="${z.y+19}" font-size="10.5" fill="#1E293B" font-weight="600" text-anchor="middle">${esc(n.dev.name.length>13?n.dev.name.slice(0,12)+'…':n.dev.name)}</text>`);
+      const svis=(n.dev.interfaces||[]).filter(i=>i.role==='svi');
+      if(svis.length) p.push(`<text x="${z.x+z.w/2}" y="${z.y+36}" font-size="8" fill="#7C3AED" text-anchor="middle" font-weight="600">SVI: ${svis.map(i=>'VLAN '+i.vlanId).join(' / ')}</text>`);
+      else if(n.dev.routes?.length) p.push(`<text x="${z.x+z.w/2}" y="${z.y+36}" font-size="8" fill="#94A3B8" text-anchor="middle">routes: ${n.dev.routes.length}</text>`);
+    } else {
+      const net=n.net;
+      p.push(`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="${z.h/2}" fill="white" stroke="${net.color}" stroke-width="2.5"/>`);
+      p.push(`<text x="${z.x+z.w/2}" y="${z.y+19}" font-size="11" fill="#1E293B" font-weight="700" text-anchor="middle" font-family="'SF Mono',Menlo,monospace">${esc(net.cidr)}</text>`);
+      const sub=[net.type==='wan'?'WAN':'LAN',net.vlan!=null?('VLAN '+net.vlan):null].filter(Boolean).join(' / ');
+      p.push(`<text x="${z.x+z.w/2}" y="${z.y+33}" font-size="8.5" fill="${net.color}" text-anchor="middle" font-weight="600">${esc(sub)}</text>`);
+    }
+    p.push('</g>');
+  }
+  p.push('</svg>');
+  wrap.innerHTML=p.join('');
+  applyZoom();
+  attachDiagramDrag('logical');
+  attachCableDrag('logical');
+  attachCableHover();
+}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: VLAN / Port / Lists
+// ═══════════════════════════════════════════════════════
+function renderVlan(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.classList.remove('diagram');
+  const G=buildGraph(project);
+  const vlans=new Map();
+  const touch=id=>{if(!vlans.has(id))vlans.set(id,{svi:[],access:[],trunk:[]});return vlans.get(id);};
+  for(const d of project.devices) for(const i of d.interfaces||[]){
+    if(i.role==='svi'&&i.vlanId!=null) touch(i.vlanId).svi.push(`${d.name} ${i.name} — ${i.ip??''}/${i.prefix??''}`);
+    else if(i.vlanId!=null) touch(i.vlanId).access.push(`${d.name} / ${i.name}${i.ip?' — '+i.ip:''}`);
+    for(const v of i.allowedVlans||[]) touch(v).trunk.push(`${d.name} / ${i.name}`);
+  }
+  const netByVlan={};
+  for(const n of G.nets.values())if(n.vlan!=null)netByVlan[n.vlan]=n;
+  const ids=[...vlans.keys()].sort((a,b)=>a-b);
+  if(ids.length===0){wrap.innerHTML='<div class="tblwrap" style="color:var(--text2)"><h2 style="color:var(--text)">VLAN構成図</h2><p>VLANが定義されていません。</p></div>';return;}
+  const h=['<div class="vlan-grid">'];
+  for(const id of ids){
+    const v=vlans.get(id);const net=netByVlan[id];
+    const color=net?.color||'#64748B';
+    h.push(`<div class="vlan-card"><div class="vh" style="background:${color}">VLAN ${id}${net?` <span style="font-weight:400;font-size:12px;opacity:.9">${esc(net.cidr)}</span>`:''}</div><div class="vb">`);
+    if(v.svi.length){h.push('<div class="sec">SVI (Gateway)</div>');v.svi.forEach(m=>h.push(`<div class="mem">${esc(m)}</div>`));}
+    if(v.access.length){h.push('<div class="sec">Access</div>');v.access.forEach(m=>h.push(`<div class="mem">${esc(m)}</div>`));}
+    if(v.trunk.length){h.push('<div class="sec">Trunk経由</div>');v.trunk.forEach(m=>h.push(`<div class="mem">${esc(m)}</div>`));}
+    h.push('</div></div>');
+  }
+  h.push('</div>');
+  wrap.innerHTML=h.join('');
+}
+function renderPort(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.classList.add('diagram');
+  const G=buildGraph(project);
+  const sizeFn=d=>({w:190,h:30+(d.interfaces?.length||0)*17+8});
+  const pos=levelLayout(project,G,sizeFn);
+  let W=1250,H=400;
+  for(const k in pos){W=Math.max(W,pos[k].x+pos[k].w+40);H=Math.max(H,pos[k].y+pos[k].h+60);}
+  const portPt=(devId,ifId,side)=>{
+    const z=pos[devId];const d=G.devMap[devId];
+    const idx=(d.interfaces||[]).findIndex(i=>i.id===ifId);
+    if(!z||idx<0)return null;
+    return {x:side==='l'?z.x:z.x+z.w,y:z.y+30+idx*17+8};
+  };
+  const p=[];
+  p.push(`<svg xmlns="http://www.w3.org/2000/svg" class="diagram-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMinYMin meet">`);
+  p.push(`<rect width="${W}" height="${H}" fill="#F8FAFC"/>`);
+  const ptBoxes=project.devices.filter(d=>pos[d.id]).map(d=>({id:d.id,x:pos[d.id].x,y:pos[d.id].y,w:pos[d.id].w,h:pos[d.id].h}));
+  for(const l of project.links||[]){
+    const za=pos[l.a.deviceId],zb=pos[l.b.deviceId];
+    if(!za||!zb)continue;
+    const aLeft=za.x+za.w/2>zb.x+zb.w/2;
+    const pa=portPt(l.a.deviceId,l.a.ifId,aLeft?'l':'r');
+    const pb=portPt(l.b.deviceId,l.b.ifId,aLeft?'r':'l');
+    if(!pa||!pb)continue;
+    const wl=l.type==='wireless';
+    const ext=22;
+    const roff=routeOff('port',l.id);
+    const ax=(aLeft?pa.x-ext:pa.x+ext)+roff.dx,bx=(aLeft?pb.x+ext:pb.x-ext)+roff.dx;
+    const my=(pa.y+pb.y)/2+roff.dy;
+    const ptsP=avoidBoxes([[pa.x,pa.y],[ax,pa.y],[ax,my],[bx,my],[bx,pb.y],[pb.x,pb.y]],
+      ptBoxes.filter(b=>b.id!==l.a.deviceId&&b.id!==l.b.deviceId));
+    const d='M'+ptsP.map(q=>q.join(',')).join(' L');
+    p.push(`<path d="${d}" fill="none" stroke="white" stroke-width="6" stroke-linejoin="round"/>`);
+    p.push(`<path d="${d}" data-cable="${esc(l.id)}" fill="none" stroke="${wl?'#84CC16':'#64748B'}" stroke-width="2" ${wl?'stroke-dasharray="6,4"':''} stroke-linejoin="round"/>`);
+  }
+  for(const d of project.devices){
+    const z=pos[d.id];if(!z)continue;
+    const s=DEV_TYPES[d.type]||DEV_TYPES.pc;
+    p.push(`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" rx="8" fill="white" stroke="${s.border}" stroke-width="2"/>`);
+    p.push(`<rect x="${z.x}" y="${z.y}" width="${z.w}" height="22" rx="8" fill="${s.bg}" stroke="${s.border}" stroke-width="1"/>`);
+    p.push(`<text x="${z.x+z.w/2}" y="${z.y+15}" font-size="10.5" fill="#1E293B" font-weight="700" text-anchor="middle">${esc(d.name)}</text>`);
+    (d.interfaces||[]).forEach((i,idx)=>{
+      const yy=z.y+30+idx*17+8;
+      const linked=(project.links||[]).some(l=>
+        (l.a.deviceId===d.id&&l.a.ifId===i.id)||(l.b.deviceId===d.id&&l.b.ifId===i.id));
+      p.push(`<circle cx="${z.x}" cy="${yy}" r="3.5" fill="${linked?'#16A34A':'#E2E8F0'}" stroke="white" stroke-width="1"/>`);
+      p.push(`<circle cx="${z.x+z.w}" cy="${yy}" r="3.5" fill="${linked?'#16A34A':'#E2E8F0'}" stroke="white" stroke-width="1"/>`);
+      // drop trailing fields until the row fits inside the box
+      const parts=[i.name,i.ip?`${i.ip}/${i.prefix}`:null,i.vlanId!=null?`VLAN ${i.vlanId}`:null,
+        (i.allowedVlans||[]).length?`Trunk ${i.allowedVlans.join(',')}`:null].filter(Boolean);
+      const AVW=z.w-18;
+      let info=parts.join('  ');
+      while(parts.length>1&&textWidth(info,8.5,'400')>AVW){ parts.pop(); info=parts.join('  '); }
+      if(textWidth(info,8.5,'400')>AVW) info=fitLabel(info,AVW,8.5,7,'400').text;
+      p.push(`<text x="${z.x+9}" y="${yy+3}" font-size="8.5" fill="#334155">${esc(info)}</text>`);
+    });
+  }
+  p.push('</svg>');
+  wrap.innerHTML=p.join('');
+  applyZoom();
+  attachCableDrag('port');
+  attachCableHover();
+}
+function renderIpList(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.classList.remove('diagram');
+  const G=buildGraph(project);
+  const rows=[];
+  for(const d of project.devices) for(const i of d.interfaces||[]){
+    if(!i.ip)continue;
+    const cidr=netOf(i.ip,+(i.prefix??24));
+    rows.push({dev:d.name,ifn:i.name,ip:`${i.ip}/${i.prefix??''}`,vlan:i.vlanId,gw:i.gateway,mac:i.mac,cidr,color:G.nets.get(cidr)?.color||'#64748B'});
+  }
+  rows.sort((a,b)=>ip2int(a.ip.split('/')[0])-ip2int(b.ip.split('/')[0]));
+  const h=['<div class="tblwrap"><h2 style="color:var(--text)">IPアドレス一覧</h2><table class="data"><tr><th>Network</th><th>Device</th><th>Interface</th><th>IP</th><th>VLAN</th><th>Gateway</th><th>MAC</th></tr>'];
+  for(const r of rows) h.push(`<tr><td><span class="chip" style="background:${r.color}">${esc(r.cidr)}</span></td><td class="n">${esc(r.dev)}</td><td>${esc(r.ifn)}</td><td>${esc(r.ip)}</td><td>${r.vlan??'—'}</td><td>${esc(r.gw??'—')}</td><td>${esc(r.mac??'—')}</td></tr>`);
+  h.push('</table></div>');
+  wrap.innerHTML=h.join('');
+}
+function renderCables(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.classList.remove('diagram');
+  const G=buildGraph(project);
+  const h=['<div class="tblwrap"><h2 style="color:var(--text)">ケーブル一覧</h2><table class="data"><tr><th>#</th><th>From</th><th>Port</th><th>To</th><th>Port</th><th>Type</th><th>Speed</th><th></th></tr>'];
+  (project.links||[]).forEach((l,i)=>{
+    const da=G.devMap[l.a.deviceId],db=G.devMap[l.b.deviceId];
+    h.push(`<tr><td>${i+1}</td><td class="n">${esc(da?.name??l.a.deviceId)}</td><td>${esc(l.a.ifId)}</td><td class="n">${esc(db?.name??l.b.deviceId)}</td><td>${esc(l.b.ifId)}</td><td>${esc(l.type)}</td><td>${esc(l.speed??'—')}</td><td><button style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:13px" onclick="deleteLink('${esc(l.id)}')">✕ 削除</button></td></tr>`);
+  });
+  h.push('</table></div>');
+  wrap.innerHTML=h.join('');
+}
+function deleteLink(id){
+  project.links=project.links.filter(l=>l.id!==id);
+  commit(); renderAll(); log('info','リンクを削除しました');
+}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: Palette (drag & drop + search)
+// ═══════════════════════════════════════════════════════
+function renderPalette(filter){
+  const el=document.getElementById('palette');
+  const h=[`<div class="search-box"><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="検索…" value="${esc(filter||'')}" oninput="renderPaletteFiltered(this.value)"></div>`];
+  for(const cat of PAL_CATS){
+    const items=Object.entries(DEV_TYPES).filter(([t,s])=>s.cat===cat&&
+      (!filter||s.label.toLowerCase().includes(filter.toLowerCase())||t.includes(filter.toLowerCase())));
+    if(items.length===0) continue;
+    h.push(`<details open><summary>${cat}</summary>`);
+    for(const [t,s] of items){
+      h.push(`<div class="pal-item" draggable="true" ondragstart="palDrag(event,'${t}')" onclick="addDevice('${t}')"><div class="pal-dot" style="background:${s.border}"></div>${s.label}</div>`);
+    }
+    h.push('</details>');
+  }
+  el.innerHTML=h.join('');
+  const inp=el.querySelector('.search-box input');
+  if(filter!==undefined&&inp){ inp.focus(); inp.setSelectionRange(inp.value.length,inp.value.length); }
+}
+function renderPaletteFiltered(v){ renderPalette(v); }
+function palDrag(e,type){ e.dataTransfer.setData('text/devtype',type); }
+
+let addOffset=0;
+function addDevice(type,x,y){
+  const id=type+'-'+Date.now().toString(36);
+  const s=DEV_TYPES[type];
+  const dev={id,type,name:s.label,
+    x:x??(80+addOffset%200),y:y??(80+addOffset%160),
+    interfaces:[{id:'if1',name:'Port1',role:'lan'}]};
+  if(type==='l2sw') dev.switchType='smart';
+  project.devices.push(dev);
+  resolveOverlap(dev);
+  addOffset+=30;
+  selectedDev=id; editIfIdx=null; commit();
+  if(view!=='physical'){view='physical';renderTabs();}
+  renderAll();
+  log('ok',`${s.label} を追加しました`);
+}
+function setupCanvasDnD(){
+  const wrap=document.getElementById('canvasWrap');
+  wrap.addEventListener('dragover',e=>{ if(e.dataTransfer.types.includes('text/devtype')) e.preventDefault(); });
+  wrap.addEventListener('drop',e=>{
+    const type=e.dataTransfer.getData('text/devtype');
+    if(!type) return;
+    e.preventDefault();
+    const svg=wrap.querySelector('svg');
+    let x=100,y=100;
+    if(svg){
+      const r=svg.getBoundingClientRect();
+      x=Math.round((e.clientX-r.left)/zoom/10)*10;
+      y=Math.round((e.clientY-r.top)/zoom/10)*10;
+    }
+    if(view!=='physical'){view='physical';renderTabs();}
+    addDevice(type,Math.max(0,x-75),Math.max(0,y-20));
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: Properties (accordion, list/detail split)
+// ═══════════════════════════════════════════════════════
+// ── Field help (ⓘ) ──
+const FIELD_INFO={
+ ip:['IP Address','機器をネットワーク上で識別するための番号です。同じネットワーク内で重複してはいけません。'],
+ prefix:['Prefix','サブネットマスクの長さです。/24 は 255.255.255.0 と同じ意味で、同じネットワークに属する範囲を決めます。'],
+ gateway:['Gateway','異なるネットワークへ通信する際の転送先です。通常はルーターやL3スイッチのIPを指定します。'],
+ vlan:['VLAN','1台のスイッチを論理的に複数のネットワークへ分割する仕組みです。'],
+ trunk:['Trunk','複数のVLANを1本のケーブルで運ぶポート設定です（IEEE 802.1Q）。'],
+ switchType:['スイッチ種別','スマートスイッチはVLANなどの設定が可能です。アンマネージドスイッチは設定不可で、全ポートが同一ネットワークになります。トランク接続もできません。'],
+ route:['Static Route','特定の宛先ネットワークへの転送先(next hop)を手動で指定する経路です。'],
+ nat:['NAT','プライベートIPをグローバルIPに変換する仕組みです。PATは1つのグローバルIPを複数端末で共有します。'],
+ acl:['ACL','通信を許可(Permit)/拒否(Deny)するルールの一覧です。上から順に評価されます。'],
+ ssid:['SSID','無線ネットワークの名前です。1つのAPで複数のSSIDを配信できます。'],
+ dns:['DNS','ドメイン名をIPアドレスに変換するサーバーのアドレスです。'],
+};
+function fieldInfo(k){const f=FIELD_INFO[k];if(!f)return;
+  exSet(`<div class="ex-card"><h4>${esc(f[0])}とは</h4><p>${esc(f[1])}</p></div>`);showBTab('explain');}
+function infoI(k){return FIELD_INFO[k]?`<span class="info-i" onclick="fieldInfo('${k}')">ⓘ</span>`:'';}
+
+// ── Realtime field validation ──
+function validIpStr(v){return /^(\d{1,3}\.){3}\d{1,3}$/.test(v)&&v.split('.').every(o=>+o<=255);}
+function liveStat(el,kind){
+  const box=el.closest('.fld')?.querySelector('.fstat');if(!box)return;
+  const v=el.value.trim();
+  if(!v){box.textContent='';box.className='fstat';return;}
+  if(!validIpStr(v)){box.textContent='❌ 形式が不正です';box.className='fstat err';return;}
+  if(kind==='ip'){
+    let dup=0;
+    for(const dd of project.devices)for(const ii of dd.interfaces||[])if(ii.ip===v)dup++;
+    if(dup>0&&el.dataset.orig!==v){box.textContent='⚠ Duplicate IP';box.className='fstat warn';return;}
+  }
+  box.textContent='✔ OK';box.className='fstat ok';
+}
+function ipStatusHtml(i){
+  if(!i.ip)return '<div class="fstat"></div>';
+  if(!validIpStr(i.ip))return '<div class="fstat err">❌ 形式が不正です</div>';
+  let dup=0;
+  for(const dd of project.devices)for(const ii of dd.interfaces||[])if(ii.ip===i.ip)dup++;
+  if(dup>1)return '<div class="fstat warn">⚠ Duplicate IP</div>';
+  return '<div class="fstat ok">✔ OK</div>';
+}
+function gwStatusHtml(i){
+  if(!i.gateway)return '<div class="fstat"></div>';
+  if(!validIpStr(i.gateway))return '<div class="fstat err">❌ 形式が不正です</div>';
+  if(i.ip&&i.prefix!=null&&!inNet(i.gateway,netOf(i.ip,+i.prefix)))return '<div class="fstat err">❌ Invalid Gateway（別サブネット）</div>';
+  const G=buildGraph(project);
+  if(!G.ipIndex[i.gateway])return '<div class="fstat warn">⚠ このIPを持つ機器がありません</div>';
+  return '<div class="fstat ok">✔ OK</div>';
+}
+
+// ── Device-type section schema ──
+function sectionsFor(d){
+  switch(d.type){
+    case 'internet': return ['generalMin'];
+    case 'onu':      return ['generalMin','interfaces'];
+    case 'router':   return ['general','interfaces','routing','nat','acl','notes'];
+    case 'firewall': return ['general','interfaces','secpolicy','nat','notes'];
+    case 'utm':      return ['general','interfaces','utmsec','nat','notes'];
+    case 'l3sw':     return ['general','ports','vlans','routing','stp','notes'];
+    case 'l2sw':     return d.switchType==='unmanaged'?['general','ports','notes']:['general','ports','vlans','stp','notes'];
+    case 'server': case 'nas': return ['generalServer','network','storage','notes'];
+    case 'pc': case 'laptop':  return ['general','network','notes'];
+    case 'printer':  return ['general','network'];
+    case 'ap':       return ['general','interfaces','ssid','notes'];
+    default:         return ['general','interfaces','notes'];
+  }
+}
+const IF_SECTION_LABEL={interfaces:'Interfaces',ports:'Ports',network:'Network'};
+
+function fld(label,inner,infoKey){
+  return `<div class="fld"><label>${esc(label)}${infoKey?infoI(infoKey):''}</label>${inner}</div>`;
+}
+function txtFld(label,key,val,ph){
+  return fld(label,`<input value="${esc(val||'')}" placeholder="${esc(ph||'')}" onchange="updDev('${key}',this.value)">`);
+}
+
+function renderProps(){
+  const el=document.getElementById('props');
+  if(propDevId!==selectedDev){propDevId=selectedDev;editIfIdx=editVlanIdx=editSsidIdx=null;}
+  const d=project.devices.find(x=>x.id===selectedDev);
+  if(!d){
+    el.innerHTML='<div class="prop-title">Properties</div><div class="empty-hint">機器をクリックすると、その機器専用の編集画面が表示されます。<br><br>左のパレットからキャンバスへドラッグ＆ドロップで機器を追加、「接続」モードでポート同士を接続します。</div>';
+    return;
+  }
+  const s=DEV_TYPES[d.type]||DEV_TYPES.pc;
+
+  if(editIfIdx!=null&&d.interfaces?.[editIfIdx]) return renderIfDetail(el,d,s);
+  if(editVlanIdx!=null&&d.vlans?.[editVlanIdx]) return renderVlanDetail(el,d,s);
+  if(editSsidIdx!=null&&d.ssids?.[editSsidIdx]) return renderSsidDetail(el,d,s);
+  editIfIdx=editVlanIdx=editSsidIdx=null;
+
+  const secs=sectionsFor(d);
+  const h=[`<div class="prop-title"><span class="badge" style="background:${s.border}">${s.tag}</span>${esc(d.name)}</div>`];
+  for(const sec of secs) h.push(SEC_RENDER[sec](d,s));
+  h.push(`<button class="danger-btn" onclick="delDevice()">この機器を削除</button>`);
+  el.innerHTML=h.join('');
+}
+
+const SEC_RENDER={
+  generalMin(d){
+    return `<details open><summary>General</summary>
+      ${txtFld('Name','name',d.name)}
+      ${fld('Description',`<textarea onchange="updDev('description',this.value)">${esc(d.description||'')}</textarea>`)}
+    </details>`;
+  },
+  general(d){
+    const swType=d.type==='l2sw'?fld('Switch Type',
+      `<select onchange="updDev('switchType',this.value)">
+        <option value="smart"${d.switchType!=='unmanaged'?' selected':''}>スマートスイッチ（VLAN対応）</option>
+        <option value="unmanaged"${d.switchType==='unmanaged'?' selected':''}>アンマネージドスイッチ</option>
+      </select>`,'switchType'):'';
+    return `<details open><summary>General</summary>
+      ${txtFld('Name','name',d.name)}
+      ${fld('Type',`<select onchange="updDev('type',this.value)">${Object.entries(DEV_TYPES).map(([t,ss])=>`<option value="${t}"${d.type===t?' selected':''}>${ss.label}</option>`).join('')}</select>`)}
+      ${swType}
+      ${txtFld('Hostname','hostname',d.hostname)}
+      ${txtFld('Manufacturer','manufacturer',d.manufacturer)}
+      ${txtFld('Model','model',d.model)}
+      <details><summary style="font-size:12px">Advanced</summary>
+        ${txtFld('Serial','serial',d.serial)}
+        ${txtFld('OS Version','os',d.os)}
+      </details>
+    </details>`;
+  },
+  generalServer(d){
+    return `<details open><summary>General</summary>
+      ${txtFld('Name','name',d.name)}
+      ${txtFld('Hostname','hostname',d.hostname)}
+      ${txtFld('OS','os',d.os,'Ubuntu 24.04')}
+      ${txtFld('Model','model',d.model)}
+      ${txtFld('CPU','cpu',d.cpu,'Xeon Silver 4410Y')}
+      ${txtFld('Memory','memory',d.memory,'64GB')}
+    </details>`;
+  },
+  interfaces(d){return SEC_RENDER._ifList(d,'interfaces');},
+  ports(d){return SEC_RENDER._ifList(d,'ports');},
+  network(d){return SEC_RENDER._ifList(d,'network');},
+  _ifList(d,kind){
+    const rows=(d.interfaces||[]).map((i,idx)=>{
+      const sub=[i.ip?`${i.ip}/${i.prefix}`:null,i.vlanId!=null?`VLAN ${i.vlanId}`:null,
+        (i.allowedVlans||[]).length?'Trunk':null].filter(Boolean).join(' ');
+      return `<div class="list-row" onclick="editIfIdx=${idx};renderProps()">
+        <span class="nm">${esc(i.name)}</span><span class="sub">${esc(sub||i.role)}</span><span class="chev">›</span></div>`;
+    }).join('');
+    return `<details open><summary>${IF_SECTION_LABEL[kind]} (${d.interfaces?.length||0})</summary>
+      <div class="sec-body">${rows}</div>
+      <button class="add-btn" onclick="addIf()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>追加</button>
+    </details>`;
+  },
+  vlans(d){
+    const rows=(d.vlans||[]).map((v,idx)=>`
+      <div class="list-row" onclick="editVlanIdx=${idx};renderProps()">
+        <span class="nm">VLAN ${v.id}</span><span class="sub">${esc(v.name||'')}</span><span class="chev">›</span></div>`).join('');
+    return `<details open><summary>VLAN (${d.vlans?.length||0})${''}</summary>
+      <div class="sec-body">${rows||'<div class="empty-hint" style="padding:0 0 8px">VLANなし</div>'}</div>
+      <div class="inline-add">
+        <input id="nv-id" type="number" placeholder="VLAN ID">
+        <input id="nv-name" placeholder="Name">
+      </div>
+      <button class="add-btn" onclick="addVlanFromForm()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Add VLAN</button>
+    </details>`;
+  },
+  routing(d){
+    const rows=(d.routes||[]).map((r,idx)=>`
+      <div class="list-row" style="cursor:default">
+        <span class="sub" style="flex:1">${esc(r.destination)}/${r.prefix} → ${esc(r.nextHop)}</span>
+        <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px" onclick="delRoute(${idx})">✕</button>
+      </div>`).join('');
+    return `<details><summary>Routing (${d.routes?.length||0})${''}</summary>
+      <div class="sec-body">${rows||'<div class="empty-hint" style="padding:0 0 8px">ルートなし</div>'}</div>
+      <div class="inline-add">
+        <input id="nr-dest" placeholder="宛先 (0.0.0.0)">
+        <input id="nr-pfx" type="number" placeholder="prefix">
+        <input class="full" id="nr-nh" placeholder="next hop">
+      </div>
+      <button class="add-btn" onclick="addRouteFromForm()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>ルート追加 ${''}</button>
+    </details>`;
+  },
+  nat(d){
+    const n=d.nat||{};
+    return `<details><summary>NAT${''}</summary>
+      ${fld('Mode',`<select onchange="updNat('mode',this.value)">
+        ${['none','pat','static','dynamic'].map(m=>`<option value="${m}"${(n.mode||'none')===m?' selected':''}>${{none:'なし',pat:'PAT (IPマスカレード)',static:'Static NAT',dynamic:'Dynamic NAT'}[m]}</option>`).join('')}
+      </select>`,'nat')}
+      ${(n.mode&&n.mode!=='none')?fld('変換ルール（1行1ルール）',`<textarea placeholder="192.168.10.0/24 → WAN" onchange="updNat('rules',this.value)">${esc(n.rules||'')}</textarea>`):''}
+    </details>`;
+  },
+  acl(d){
+    const rows=(d.acl||[]).map((a,idx)=>`
+      <div class="list-row" style="cursor:default">
+        <span class="badge" style="background:${a.action==='permit'?'var(--ok)':'var(--danger)'};flex-shrink:0">${a.action==='permit'?'Permit':'Deny'}</span>
+        <span class="sub" style="flex:1">${esc(a.src||'any')} → ${esc(a.dst||'any')}</span>
+        <button style="background:none;border:none;color:var(--danger);cursor:pointer" onclick="delAcl(${idx})">✕</button>
+      </div>`).join('');
+    return `<details><summary>ACL (${d.acl?.length||0})${''}</summary>
+      <div class="sec-body">${rows||'<div class="empty-hint" style="padding:0 0 8px">ルールなし（すべて許可）</div>'}</div>
+      <div class="inline-add">
+        <select id="na-act"><option value="permit">Permit</option><option value="deny">Deny</option></select>
+        <input id="na-src" placeholder="送信元 (any)">
+        <input class="full" id="na-dst" placeholder="宛先 (any)">
+      </div>
+      <button class="add-btn" onclick="addAclFromForm()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Rule追加 ${''}</button>
+    </details>`;
+  },
+  secpolicy(d){ return SEC_RENDER.acl(d).replace('ACL','Security Policy').replace('ACL','Security Policy'); },
+  utmsec(d){
+    const u=d.utmFeatures||{};
+    const chk=(k,label)=>`<div class="chk-row"><input type="checkbox" ${u[k]?'checked':''} onchange="updUtm('${k}',this.checked)"><span>${label}</span></div>`;
+    return `<details><summary>Security Features</summary>
+      ${chk('ips','IPS（不正侵入防御）')}
+      ${chk('webfilter','Web Filter')}
+      ${chk('appcontrol','Application Control')}
+      ${chk('vpn','VPN')}
+    </details>`;
+  },
+  stp(d){
+    const st=d.stp||{};
+    return `<details><summary>STP</summary>
+      <div class="chk-row"><input type="checkbox" ${st.enabled?'checked':''} onchange="updStp('enabled',this.checked)"><span>Spanning Tree を有効化</span></div>
+      ${st.enabled?fld('Mode',`<select onchange="updStp('mode',this.value)">
+        ${['STP','RSTP','MSTP','PVST+'].map(m=>`<option${(st.mode||'RSTP')===m?' selected':''}>${m}</option>`).join('')}
+      </select>`)+fld('Bridge Priority',`<input type="number" step="4096" min="0" max="61440" value="${esc(st.priority??32768)}" onchange="updStp('priority',+this.value)">`):''}
+    </details>`;
+  },
+  storage(d){
+    const rows=(d.disks||[]).map((k,idx)=>`
+      <div class="list-row" style="cursor:default">
+        <span class="nm">${esc(k.name||'disk')}</span>
+        <span class="sub">${esc(k.mount||'')} ${esc(k.capacity||'')}</span>
+        <button style="background:none;border:none;color:var(--danger);cursor:pointer" onclick="delDisk(${idx})">✕</button>
+      </div>`).join('');
+    return `<details><summary>Storage (${d.disks?.length||0})</summary>
+      <div class="sec-body">${rows||'<div class="empty-hint" style="padding:0 0 8px">ディスクなし</div>'}</div>
+      <div class="inline-add">
+        <input id="nd-name" placeholder="Disk名 (sda)">
+        <input id="nd-cap" placeholder="容量 (1TB)">
+        <input class="full" id="nd-mount" placeholder="Mount Point (/data)">
+      </div>
+      <button class="add-btn" onclick="addDiskFromForm()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>Disk追加</button>
+    </details>`;
+  },
+  ssid(d){
+    const rows=(d.ssids||[]).map((v,idx)=>`
+      <div class="list-row" onclick="editSsidIdx=${idx};renderProps()">
+        <span class="nm">${esc(v.name)}</span><span class="sub">${v.vlanId!=null?'V'+v.vlanId:''} ${esc(v.band||'')}</span><span class="chev">›</span></div>`).join('');
+    return `<details open><summary>SSID (${d.ssids?.length||0})${''}</summary>
+      <div class="sec-body">${rows||'<div class="empty-hint" style="padding:0 0 8px">SSIDなし</div>'}</div>
+      <button class="add-btn" onclick="addSsid()"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>SSID追加 ${''}</button>
+    </details>`;
+  },
+  notes(d){
+    return `<details><summary>Notes</summary>
+      ${fld('Description',`<textarea placeholder="メモ…" onchange="updDev('description',this.value)">${esc(d.description||'')}</textarea>`)}
+    </details>`;
+  },
+};
+
+// ── Detail editors (list/detail separation) ──
+function renderIfDetail(el,d,s){
+  const i=d.interfaces[editIfIdx];
+  const isSwitch=d.type==='l2sw'||d.type==='l3sw';
+  const unmanaged=d.type==='l2sw'&&d.switchType==='unmanaged';
+  const isHost=['server','nas','pc','laptop','printer'].includes(d.type);
+  const idx=editIfIdx;
+  const h=[`<button class="back-btn" onclick="editIfIdx=null;renderProps()">← 一覧に戻る</button>`,
+    `<div class="prop-title"><span class="badge" style="background:${s.border}">${s.tag}</span>${esc(i.name)}</div>`];
+  h.push(fld('Name',`<input value="${esc(i.name)}" onchange="updIf(${idx},'name',this.value)">`));
+  h.push(fld('Speed',`<input value="${esc(i.speed||'')}" placeholder="1G / 10G" onchange="updIf(${idx},'speed',this.value)">`));
+
+  if(isSwitch&&!unmanaged){
+    h.push(fld('Mode',`<select onchange="updIf(${idx},'role',this.value)">
+      ${['access','trunk','lan','svi'].map(r=>`<option value="${r}"${i.role===r?' selected':''}>${{access:'Access',trunk:'Trunk',lan:'Routed (L3)',svi:'SVI (VLAN IF)'}[r]}</option>`).join('')}
+    </select>`,'trunk'));
+    if(i.role==='access'||i.role==='svi')
+      h.push(fld('VLAN ID',`<input type="number" value="${esc(i.vlanId??'')}" placeholder="10" onchange="updIf(${idx},'vlanId',this.value===''?null:+this.value)">`,'vlan'));
+    if(i.role==='trunk')
+      h.push(fld('許可VLAN（カンマ区切り）',`<input value="${esc((i.allowedVlans||[]).join(','))}" placeholder="10,20,30" onchange="updIf(${idx},'allowedVlans',this.value?this.value.split(',').map(Number).filter(n=>!isNaN(n)):null)">`,'trunk'));
+    if(i.role==='lan'||i.role==='svi'){
+      h.push(fld('IP Address',`<input value="${esc(i.ip||'')}" data-orig="${esc(i.ip||'')}" placeholder="192.168.1.1" oninput="liveStat(this,'ip')" onchange="updIf(${idx},'ip',this.value)">${ipStatusHtml(i)}`,'ip'));
+      h.push(fld('Prefix',`<input type="number" min="0" max="32" value="${esc(i.prefix??'')}" placeholder="24" onchange="updIf(${idx},'prefix',this.value===''?null:+this.value)">`,'prefix'));
+    }
+  } else if(unmanaged){
+    h.push(`<div class="empty-hint" style="padding:4px 0 12px">アンマネージドスイッチのため、VLAN・IPの設定項目はありません。全ポートが同一ネットワークで動作します。${infoI('switchType')}</div>`);
+  } else {
+    h.push(fld('Role',`<select onchange="updIf(${idx},'role',this.value)">${ROLES.map(r=>`<option${i.role===r?' selected':''}>${r}</option>`).join('')}</select>`));
+    h.push(fld('IP Address',`<input value="${esc(i.ip||'')}" data-orig="${esc(i.ip||'')}" placeholder="192.168.1.1" oninput="liveStat(this,'ip')" onchange="updIf(${idx},'ip',this.value)">${ipStatusHtml(i)}`,'ip'));
+    h.push(fld('Prefix',`<input type="number" min="0" max="32" value="${esc(i.prefix??'')}" placeholder="24" onchange="updIf(${idx},'prefix',this.value===''?null:+this.value)">`,'prefix'));
+    h.push(fld('Gateway',`<input value="${esc(i.gateway||'')}" placeholder="192.168.1.254" oninput="liveStat(this,'gw')" onchange="updIf(${idx},'gateway',this.value)">${gwStatusHtml(i)}`,'gateway'));
+    if(isHost) h.push(fld('DNS',`<input value="${esc(i.dns||'')}" placeholder="8.8.8.8" onchange="updIf(${idx},'dns',this.value)">`,'dns'));
+    if(!isHost&&i.vlanId!=null||['pc','laptop','printer','ap'].includes(d.type))
+      h.push(fld('VLAN ID',`<input type="number" value="${esc(i.vlanId??'')}" onchange="updIf(${idx},'vlanId',this.value===''?null:+this.value)">`,'vlan'));
+    h.push(`<details><summary style="font-size:12px;color:var(--text2);cursor:pointer;padding:4px 0 12px">Advanced</summary>
+      ${fld('MAC',`<input value="${esc(i.mac||'')}" placeholder="00:11:22:…" onchange="updIf(${idx},'mac',this.value)">`)}
+    </details>`);
+  }
+  h.push(fld('Description',`<input value="${esc(i.description||'')}" onchange="updIf(${idx},'description',this.value)">`));
+  h.push(`<button class="danger-btn" onclick="delIf(${idx})">このインターフェースを削除</button>`);
+  el.innerHTML=h.join('');
+}
+
+function renderVlanDetail(el,d,s){
+  const v=d.vlans[editVlanIdx];
+  const idx=editVlanIdx;
+  const G=buildGraph(project);
+  const svi=(d.interfaces||[]).find(i=>i.role==='svi'&&i.vlanId===v.id);
+  const users=[];
+  for(const dd of project.devices) for(const i of dd.interfaces||[]){
+    if(i.vlanId===v.id&&i.role!=='svi') users.push(`${dd.name}/${i.name}`);
+  }
+  el.innerHTML=`
+    <button class="back-btn" onclick="editVlanIdx=null;renderProps()">← VLAN一覧に戻る</button>
+    <div class="prop-title"><span class="badge" style="background:${s.border}">VLAN</span>VLAN ${v.id}</div>
+    ${fld('VLAN ID',`<input type="number" value="${v.id}" onchange="updVlan(${idx},'id',+this.value)">`,'vlan')}
+    ${fld('Name',`<input value="${esc(v.name||'')}" placeholder="Office" onchange="updVlan(${idx},'name',this.value)">`)}
+    ${svi?fld('Gateway (SVI)',`<input value="${esc(svi.ip||'')}/${esc(svi.prefix??'')}" disabled style="opacity:.6">`,'gateway'):
+      `<div class="empty-hint" style="padding:4px 0 12px">このVLANのSVI（ゲートウェイ）は未作成です。${d.type==='l3sw'?'Ports からSVIモードのインターフェースを追加してください。':''}</div>`}
+    ${users.length?`<div class="fld"><label>使用ポート</label><div class="sec-body">${users.map(u=>`<div class="list-row" style="cursor:default"><span class="sub">${esc(u)}</span></div>`).join('')}</div></div>`:''}
+    ${fld('Description',`<input value="${esc(v.description||'')}" onchange="updVlan(${idx},'description',this.value)">`)}
+    <button class="danger-btn" onclick="delVlan(${idx})">このVLANを削除</button>`;
+}
+
+function renderSsidDetail(el,d,s){
+  const v=d.ssids[editSsidIdx];
+  const idx=editSsidIdx;
+  el.innerHTML=`
+    <button class="back-btn" onclick="editSsidIdx=null;renderProps()">← SSID一覧に戻る</button>
+    <div class="prop-title"><span class="badge" style="background:${s.border}">SSID</span>${esc(v.name)}</div>
+    ${fld('SSID',`<input value="${esc(v.name)}" onchange="updSsid(${idx},'name',this.value)">`,'ssid')}
+    ${fld('Band',`<select onchange="updSsid(${idx},'band',this.value)">
+      ${['2.4GHz','5GHz','2.4/5GHz','6GHz'].map(b=>`<option${v.band===b?' selected':''}>${b}</option>`).join('')}
+    </select>`)}
+    ${fld('Channel',`<input value="${esc(v.channel||'')}" placeholder="auto" onchange="updSsid(${idx},'channel',this.value)">`)}
+    ${fld('VLAN ID',`<input type="number" value="${esc(v.vlanId??'')}" onchange="updSsid(${idx},'vlanId',this.value===''?null:+this.value)">`,'vlan')}
+    ${fld('Security',`<select onchange="updSsid(${idx},'security',this.value)">
+      ${['WPA3','WPA2','WPA2/WPA3','Open'].map(b=>`<option${(v.security||'WPA2')===b?' selected':''}>${b}</option>`).join('')}
+    </select>`)}
+    ${fld('Password',`<input type="password" value="${esc(v.password||'')}" onchange="updSsid(${idx},'password',this.value)">`)}
+    <button class="danger-btn" onclick="delSsid(${idx})">このSSIDを削除</button>`;
+}
+function curDev(){return project.devices.find(x=>x.id===selectedDev);}
+function updDev(k,v){const d=curDev();if(d){d[k]=v;commit();renderAll();}}
+function updIf(idx,k,v){const d=curDev();if(d&&d.interfaces[idx]){d.interfaces[idx][k]=(v===''?undefined:v);commit();renderView();renderExplainSelects();renderProps();}}
+function delIf(idx){const d=curDev();if(!d)return;
+  const i=d.interfaces[idx];
+  project.links=project.links.filter(l=>!((l.a.deviceId===d.id&&l.a.ifId===i.id)||(l.b.deviceId===d.id&&l.b.ifId===i.id)));
+  d.interfaces.splice(idx,1);editIfIdx=null;commit();renderAll();}
+function addIf(){const d=curDev();if(!d)return;
+  const n=(d.interfaces?.length||0)+1;
+  (d.interfaces=d.interfaces||[]).push({id:'if'+Date.now().toString(36),name:'Port'+n,role:'lan'});
+  editIfIdx=d.interfaces.length-1;commit();renderAll();}
+function delRoute(idx){const d=curDev();if(d?.routes){d.routes.splice(idx,1);commit();renderAll();}}
+function addRouteFromForm(){
+  const d=curDev();if(!d)return;
+  const dest=document.getElementById('nr-dest').value.trim();
+  const pfx=+document.getElementById('nr-pfx').value;
+  const nh=document.getElementById('nr-nh').value.trim();
+  if(!dest||!nh||isNaN(pfx)){log('warn','宛先・prefix・next hopをすべて入力してください');return;}
+  (d.routes=d.routes||[]).push({destination:dest,prefix:pfx,nextHop:nh,protocol:'Static'});
+  commit();renderAll();
+}
+function delDevice(){const d=curDev();if(!d)return;
+  project.links=project.links.filter(l=>l.a.deviceId!==d.id&&l.b.deviceId!==d.id);
+  project.devices=project.devices.filter(x=>x.id!==d.id);
+  selectedDev=null;editIfIdx=null;commit();renderAll();log('info',`${d.name} を削除しました`);}
+
+// VLAN
+function updVlan(idx,k,v){const d=curDev();if(d?.vlans?.[idx]){d.vlans[idx][k]=v;commit();renderProps();}}
+function addVlanFromForm(){
+  const d=curDev();if(!d)return;
+  const id=+document.getElementById('nv-id').value;
+  const name=document.getElementById('nv-name').value.trim();
+  if(isNaN(id)||id<1||id>4094){log('warn','VLAN IDは1〜4094で入力してください');return;}
+  if((d.vlans||[]).some(v=>v.id===id)){log('warn',`VLAN ${id} は既に存在します`);return;}
+  (d.vlans=d.vlans||[]).push({id,name});
+  commit();renderProps();
+}
+function delVlan(idx){const d=curDev();if(d?.vlans){d.vlans.splice(idx,1);editVlanIdx=null;commit();renderProps();}}
+// SSID
+function updSsid(idx,k,v){const d=curDev();if(d?.ssids?.[idx]){d.ssids[idx][k]=v;commit();renderProps();}}
+function addSsid(){const d=curDev();if(!d)return;
+  (d.ssids=d.ssids||[]).push({id:'s'+Date.now().toString(36),name:'New-SSID',band:'2.4/5GHz'});
+  editSsidIdx=d.ssids.length-1;commit();renderProps();}
+function delSsid(idx){const d=curDev();if(d?.ssids){d.ssids.splice(idx,1);editSsidIdx=null;commit();renderProps();}}
+// NAT / ACL / UTM / Storage
+function updNat(k,v){const d=curDev();if(!d)return;(d.nat=d.nat||{})[k]=v;commit();renderProps();}
+function updUtm(k,v){const d=curDev();if(!d)return;(d.utmFeatures=d.utmFeatures||{})[k]=v;commit();}
+function updStp(k,v){const d=curDev();if(!d)return;(d.stp=d.stp||{})[k]=v;commit();renderProps();}
+function addAclFromForm(){
+  const d=curDev();if(!d)return;
+  (d.acl=d.acl||[]).push({
+    action:document.getElementById('na-act').value,
+    src:document.getElementById('na-src').value.trim()||'any',
+    dst:document.getElementById('na-dst').value.trim()||'any'});
+  commit();renderProps();
+}
+function delAcl(idx){const d=curDev();if(d?.acl){d.acl.splice(idx,1);commit();renderProps();}}
+function addDiskFromForm(){
+  const d=curDev();if(!d)return;
+  (d.disks=d.disks||[]).push({
+    name:document.getElementById('nd-name').value.trim()||'disk',
+    capacity:document.getElementById('nd-cap').value.trim(),
+    mount:document.getElementById('nd-mount').value.trim()});
+  commit();renderProps();
+}
+function delDisk(idx){const d=curDev();if(d?.disks){d.disks.splice(idx,1);commit();renderProps();}}
+
+// ═══════════════════════════════════════════════════════
+// Presentation: tabs, bottom panel, log
+// ═══════════════════════════════════════════════════════
+function renderTabs(){
+  document.getElementById('viewTabs').innerHTML=
+    VIEWS.map(([v,l])=>`<button class="vtab${view===v?' active':''}" onclick="setView('${v}')">${l}</button>`).join('');
+}
+function setView(v){
+  view=v; renderTabs(); renderView();
+  const zb=document.getElementById('zoomBar');
+  if(zb) zb.style.display=isDiagramView()?'':'none';
+}
+function showBTab(name){
+  document.querySelectorAll('.btab').forEach(b=>b.classList.toggle('active',b.dataset.b===name));
+  document.querySelectorAll('.bpane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+  if(name==='validation') runValidation(true); // auto-run on tab open
+}
+function renderExplainSelects(){
+  const opts=project.devices.map(d=>`<option value="${esc(d.id)}">${esc(d.name)}</option>`).join('');
+  const f=document.getElementById('expFrom'),t=document.getElementById('expTo');
+  const fv=f.value,tv=t.value;
+  f.innerHTML='<option value="">送信元…</option>'+opts;
+  t.innerHTML='<option value="">宛先…</option>'+opts;
+  if(fv)f.value=fv;if(tv)t.value=tv;
+  f.onchange=()=>renderIfSelect('expFrom','expFromIf');
+  t.onchange=()=>renderIfSelect('expTo','expToIf');
+  renderIfSelect('expFrom','expFromIf');
+  renderIfSelect('expTo','expToIf');
+}
+// 宛先/送信元機器が複数IPを持つ場合にIFを明示選択できるようにする
+function renderIfSelect(devSelId,ifSelId){
+  const sel=document.getElementById(ifSelId); if(!sel) return;
+  const devId=document.getElementById(devSelId)?.value;
+  const dev=project.devices.find(d=>d.id===devId);
+  const ips=(dev?.interfaces||[]).filter(i=>i.ip);
+  const prev=sel.value;
+  if(!dev||ips.length===0){ sel.innerHTML='<option value="">—</option>'; sel.disabled=true; return; }
+  sel.disabled=ips.length<2;
+  sel.innerHTML=ips.map(i=>`<option value="${esc(i.id)}">${esc(i.name)} (${esc(i.ip)})</option>`).join('');
+  if(prev&&ips.some(i=>i.id===prev)) sel.value=prev;
+}
+// 選択されたIFを返す（未選択時は先頭のIP付きIF）
+function selectedIface(devId,ifSelId){
+  const dev=project.devices.find(d=>d.id===devId);
+  if(!dev) return null;
+  const chosen=document.getElementById(ifSelId)?.value;
+  return (dev.interfaces||[]).find(i=>i.id===chosen&&i.ip)
+      || (dev.interfaces||[]).find(i=>i.ip) || null;
+}
+// ── Terminal-style log system ──
+let logEntries=[], logFilter='All', logSearch='', simSpeed=1;
+function nowTs(){const d=new Date();
+  return '['+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')+':'+String(d.getSeconds()).padStart(2,'0')+']';}
+function addLog(lv,msg,det){
+  logEntries.push({t:nowTs(),lv,msg,det});
+  if(logEntries.length>800) logEntries.shift();
+  renderLogs();
+}
+function log(level,msg){
+  addLog({ok:'SUCCESS',err:'ERROR',warn:'WARNING',info:'INFO'}[level]||String(level).toUpperCase(),msg);
+}
+function renderLogs(){
+  const out=document.getElementById('logout'); if(!out) return;
+  const q=logSearch.toLowerCase();
+  const items=logEntries.filter(e=>(logFilter==='All'||e.lv===logFilter)&&(!q||e.msg.toLowerCase().includes(q)));
+  out.innerHTML=items.map(e=>
+    `<div class="lline"><span class="lts">${e.t}</span> <span class="lv-${e.lv}">${e.lv.padEnd(7,' ')}</span> <span class="lmsg">${esc(e.msg)}</span></div>`+
+    (e.det||[]).map(dl=>`<div class="ldet">${esc(dl)}</div>`).join('')).join('');
+  out.scrollTop=out.scrollHeight;
+}
+function clearLogs(){logEntries=[];renderLogs();}
+function copyLogs(){
+  const txt=logEntries.map(e=>`${e.t} ${e.lv} ${e.msg}`).join('\n');
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>addLog('INFO','ログをコピーしました'));
+}
+function saveLogs(){download('network_log.txt',logEntries.map(e=>`${e.t} ${e.lv} ${e.msg}`).join('\n'),'text/plain');}
+
+// ── Theme ──
+let theme=(()=>{try{return localStorage.getItem('netdesigner.theme')||'dark';}catch(e){return 'dark';}})();
+function applyTheme(){
+  let t=theme;
+  if(t==='system') t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+  document.body.dataset.theme=t;
+  const btn=document.getElementById('themeBtn');
+  if(btn) btn.textContent={dark:'🌙 Dark',light:'☀ Light',system:'🖥 System'}[theme];
+}
+function cycleTheme(){
+  theme={dark:'light',light:'system',system:'dark'}[theme]||'dark';
+  try{localStorage.setItem('netdesigner.theme',theme);}catch(e){}
+  applyTheme();
+  addLog('INFO','テーマ: '+theme);
+}
+if(window.matchMedia) window.matchMedia('(prefers-color-scheme: light)').addEventListener?.('change',()=>{if(theme==='system')applyTheme();});
+
+// ── Sidebar panels ──
+function togglePanel(side){
+  document.body.classList.toggle('hide-'+side);
+  updatePanelBtns();
+  try{localStorage.setItem('netdesigner.panels',JSON.stringify({
+    left:document.body.classList.contains('hide-left'),
+    right:document.body.classList.contains('hide-right')}));}catch(e){}
+}
+function updatePanelBtns(){
+  document.getElementById('panelLBtn')?.classList.toggle('pon',!document.body.classList.contains('hide-left'));
+  document.getElementById('panelRBtn')?.classList.toggle('pon',!document.body.classList.contains('hide-right'));
+}
+function restorePanels(){
+  try{
+    const s=JSON.parse(localStorage.getItem('netdesigner.panels')||'{}');
+    if(s.left) document.body.classList.add('hide-left');
+    if(s.right) document.body.classList.add('hide-right');
+  }catch(e){}
+  updatePanelBtns();
+}
+
+// ── Fullscreen canvas ──
+function toggleFullscreen(){
+  document.body.classList.toggle('fs');
+  addLog('INFO',document.body.classList.contains('fs')?'キャンバス最大化 (Escで戻る)':'通常表示に戻りました');
+}
+
+// Bottom panel resize
+(function(){
+  const handle=document.getElementById('bottomResize');
+  const bar=document.getElementById('bottombar');
+  let startY=0,startH=0,resizing=false;
+  handle.addEventListener('mousedown',e=>{resizing=true;startY=e.clientY;startH=bar.offsetHeight;e.preventDefault();});
+  window.addEventListener('mousemove',e=>{
+    if(!resizing)return;
+    bar.style.height=Math.max(80,Math.min(window.innerHeight-200,startH+(startY-e.clientY)))+'px';
+  });
+  window.addEventListener('mouseup',()=>resizing=false);
+})();
+
+// Keyboard shortcuts
+let spaceDown=false, lastPanMoved=false;
+let collapsedNets=new Set();
+function toggleNetCollapse(cidr){
+  if(collapsedNets.has(cidr)) collapsedNets.delete(cidr); else collapsedNets.add(cidr);
+  renderPhysical();
+  addLog('INFO',`グループ ${cidr} を${collapsedNets.has(cidr)?'折りたたみ':'展開'}ました`);
+}
+window.addEventListener('keydown',e=>{
+  if((e.metaKey||e.ctrlKey)&&e.key==='z'){e.preventDefault();e.shiftKey?redo():undo();}
+  if((e.metaKey||e.ctrlKey)&&e.key==='s'){e.preventDefault();exportJSON();}
+  if(e.key==='Escape'){
+    if(linkFirst||selectedLink){ linkFirst=null; selectedLink=null; if(view==='physical') renderPhysical(); }
+    else if(document.body.classList.contains('fs')) toggleFullscreen();
+  }
+  // 選択中の配線を削除
+  if((e.key==='Delete'||e.key==='Backspace')&&selectedLink&&!e.target.matches('input,textarea,select')){
+    e.preventDefault(); deleteSelectedLink();
+  }
+  if(e.code==='Space'&&!e.target.matches('input,textarea,select')){spaceDown=true;e.preventDefault();
+    document.getElementById('canvasWrap').style.cursor='grab';}
+});
+window.addEventListener('keyup',e=>{
+  if(e.code==='Space'){spaceDown=false;document.getElementById('canvasWrap').style.cursor='';}
+});
+
+// Canvas pan & wheel zoom
+(function(){
+  const wrap=document.getElementById('canvasWrap');
+  let pan=null;
+  wrap.addEventListener('mousedown',e=>{
+    if(drag) return; // device drag has priority
+    // ケーブル(data-cable)とドラッグ対象はパン開始の対象外にする（手動調整を優先）
+    const interactive=e.target.closest('.dev-g,.port-c,[data-cable],[data-drag],button,input,select,a,.list-row');
+    const isBg=e.target.dataset?.bg||e.target.tagName==='svg'||(!interactive&&e.target.closest('svg'));
+    if(spaceDown||isBg){
+      pan={sx:e.clientX,sy:e.clientY,sl:wrap.scrollLeft,st:wrap.scrollTop,moved:false};
+      wrap.style.cursor='grabbing';
+      e.preventDefault();
+    }
+  });
+  window.addEventListener('mousemove',e=>{
+    if(!pan) return;
+    const dx=e.clientX-pan.sx, dy=e.clientY-pan.sy;
+    if(Math.abs(dx)+Math.abs(dy)>3) pan.moved=true;
+    wrap.scrollLeft=pan.sl-dx; wrap.scrollTop=pan.st-dy;
+  });
+  window.addEventListener('mouseup',()=>{
+    if(pan){wrap.style.cursor=spaceDown?'grab':'';lastPanMoved=pan.moved;}
+    else lastPanMoved=false;
+    pan=null;
+  });
+  wrap.addEventListener('wheel',e=>{
+    // 表ビュー: 通常ホイール=縦スクロール / Shift=横スクロール（ズームしない）
+    if(!isDiagramView()){
+      if(e.shiftKey){ wrap.scrollLeft+=e.deltaY; e.preventDefault(); }
+      return; // 既定の縦スクロールに任せる
+    }
+    if(e.shiftKey){ wrap.scrollLeft+=e.deltaY; e.preventDefault(); return; }
+    // 図ビュー: ホイール=ズーム（カーソル位置中心）
+    e.preventDefault();
+    const rect=wrap.getBoundingClientRect();
+    const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+    const old=zoom;
+    setZoom(zoom+(e.deltaY>0?-0.1:0.1));
+    if(zoom!==old){
+      const f=zoom/old;
+      wrap.scrollLeft=(wrap.scrollLeft+cx)*f-cx;
+      wrap.scrollTop=(wrap.scrollTop+cy)*f-cy;
+    }
+  },{passive:false});
+})();
+
+// ═══════════════════════════════════════════════════════
+// Auto Layout (hierarchical + subnet grouping)
+// ═══════════════════════════════════════════════════════
+function applyAutoLayout(){
+  const G=buildGraph(project);
+  const level=bfsLevels(project,G);
+  const byLv={};
+  for(const d of project.devices)(byLv[level[d.id]]=byLv[level[d.id]]||[]).push(d);
+  const netKeyOf=d=>{
+    const i=(d.interfaces||[]).find(x=>x.ip&&x.role!=='wan');
+    if(i) return netOf(i.ip,+(i.prefix??24));
+    const a=(d.interfaces||[]).find(x=>x.vlanId!=null);
+    return a?('vlan'+String(a.vlanId).padStart(4,'0')):'~';
+  };
+  const keys=Object.keys(byLv).map(Number).sort((a,b)=>a-b);
+  const GX=130,GY=150,W=1600;   // 外側ポートラベル分の余白を確保
+  let y=90;
+  for(const k of keys){
+    const row=byLv[k].slice().sort((a,b)=>netKeyOf(a)<netKeyOf(b)?-1:netKeyOf(a)>netKeyOf(b)?1:0);
+    const totW=row.reduce((a,b)=>a+devBoxW(b),0)+(row.length-1)*GX;
+    let x=Math.max(40,(W-totW)/2),maxH=0;
+    for(const d of row){ d.x=Math.round(x/10)*10; d.y=Math.round(y/10)*10; x+=devBoxW(d)+GX; maxH=Math.max(maxH,devBoxH(d)); }
+    y+=maxH+GY;
+  }
+  commit();
+  if(view!=='physical'){view='physical';renderTabs();}
+  renderAll();
+  addLog('INFO','自動整列を実行しました（階層×サブネット順）');
+}
+
+// ═══════════════════════════════════════════════════════
+// Packet Simulation
+// ═══════════════════════════════════════════════════════
+function computeHopChain(G,src,dst,dstIp){
+  const chain=[src.id]; let cur=src; const visited=new Set(); let hop=0;
+  while(hop++<15){
+    if(visited.has(cur.id)) return null;
+    visited.add(cur.id);
+    if(cur.id===dst.id) return chain;
+    const direct=deviceNets(cur).find(n=>inNet(dstIp,n.cidr));
+    if(direct){ chain.push(dst.id); return chain; }
+    let nextIp=null;
+    const m=longestMatch(cur,dstIp);
+    if(m&&m.type==='route') nextIp=m.route.nextHop;
+    else { const gwIf=(cur.interfaces||[]).find(i=>i.gateway); if(gwIf) nextIp=gwIf.gateway; }
+    if(!nextIp) return null;
+    const nh=G.ipIndex[nextIp]; if(!nh) return null;
+    chain.push(nh.deviceId);
+    cur=G.devMap[nh.deviceId];
+  }
+  return null;
+}
+function bfsPath(adj,from,to){
+  if(from===to) return [from];
+  const prev={[from]:null}; const q=[from];
+  while(q.length){
+    const c=q.shift();
+    for(const nb of adj[c]||[]){
+      if(prev[nb]!==undefined) continue;
+      prev[nb]=c;
+      if(nb===to){ const path=[to]; let p=c; while(p!==null){path.unshift(p);p=prev[p];} return path; }
+      q.push(nb);
+    }
+  }
+  return null;
+}
+let simRunning=false;
+const simCtl={paused:false,stopped:false};
+function pauseSim(btn){
+  if(!simRunning) return;
+  simCtl.paused=!simCtl.paused;
+  btn.textContent=simCtl.paused?'▶':'⏸';
+  addLog('INFO',simCtl.paused?'Simulation paused':'Simulation resumed');
+}
+function stopSim(){ if(simRunning) simCtl.stopped=true; }
+async function simulatePacket(){
+  if(simRunning){addLog('WARNING','シミュレーション実行中です');return;}
+  const G=buildGraph(project);
+  const src=G.devMap[document.getElementById('expFrom').value];
+  const dst=G.devMap[document.getElementById('expTo').value];
+  if(!src||!dst){addLog('WARNING','送信元と宛先を選択してください');return;}
+  const dstIf=selectedIface(dst.id,'expToIf');
+  if(!dstIf){addLog('WARNING',`${dst.name} にIPアドレスがありません`);return;}
+  const chain=computeHopChain(G,src,dst,dstIf.ip);
+  if(!chain){addLog('ERROR','経路が見つかりません（ルート/GW設定を確認してください）');return;}
+  // expand L3 hops to physical path
+  const full=[];
+  for(let i=0;i<chain.length-1;i++){
+    const seg=bfsPath(G.phys,chain[i],chain[i+1]);
+    if(!seg){addLog('ERROR',`物理経路がありません: ${G.devMap[chain[i]].name} → ${G.devMap[chain[i+1]].name}`);return;}
+    full.push(...(i===0?seg:seg.slice(1)));
+  }
+  if(view!=='physical'){view='physical';renderTabs();renderView();}
+  showBTab('logs');
+  simRunning=true; simCtl.paused=false; simCtl.stopped=false;
+  const pb=document.getElementById('pauseBtn'); if(pb) pb.textContent='⏸';
+  const srcIf=selectedIface(src.id,'expFromIf');
+  const srcIp=srcIf?`${srcIf.ip} (${srcIf.name})`:'—';
+  addLog('PACKET','Packet Generated',[`Source:      ${src.name}  ${srcIp}`,`Destination: ${dst.name}  ${dstIf.ip} (${dstIf.name})`]);
+  const t0=performance.now();
+  try{
+    for(let i=0;i<full.length-1;i++){
+      if(simCtl.stopped){addLog('WARNING','Simulation stopped');return;}
+      const a=full[i],b=full[i+1];
+      const link=(project.links||[]).find(l=>
+        (l.a.deviceId===a&&l.b.deviceId===b)||(l.a.deviceId===b&&l.b.deviceId===a));
+      const da=G.devMap[a],db=G.devMap[b];
+      addLog(chain.includes(a)&&chain.includes(b)&&chain.indexOf(b)===chain.indexOf(a)+1?'ROUTE':'PACKET',
+        `${da.name} → ${db.name}${link?.speed?'  ('+link.speed+')':''}`);
+      if(link){
+        const r=await animateAlongLink(link,a);
+        if(r==='stopped'){addLog('WARNING','Simulation stopped');return;}
+      }
+    }
+    addLog('SUCCESS','Destination reached',[`RTT  ${((performance.now()-t0)/1000*0.02+0.4).toFixed(2)} ms`]);
+  } finally { simRunning=false; simCtl.paused=false; simCtl.stopped=false; if(pb) pb.textContent='⏸'; }
+}
+function animateAlongLink(link,fromDevId){
+  return new Promise(res=>{
+    const svg=document.getElementById('physSvg');
+    const pathEl=svg?.querySelector(`path[data-link="${CSS.escape(link.id)}"]`);
+    if(!pathEl){res();return;}
+    const len=pathEl.getTotalLength();
+    const reverse=link.b.deviceId===fromDevId;
+    const NS='http://www.w3.org/2000/svg';
+    const halo=document.createElementNS(NS,'circle');
+    halo.setAttribute('r','9');halo.setAttribute('fill','#FDE047');halo.setAttribute('opacity','.35');
+    const dot=document.createElementNS(NS,'circle');
+    dot.setAttribute('r','5');dot.setAttribute('fill','#FDE047');dot.setAttribute('stroke','#F59E0B');dot.setAttribute('stroke-width','2');
+    svg.appendChild(halo);svg.appendChild(dot);
+    const dur=Math.max(250,len/(300*simSpeed)*1000);
+    let elapsed=0, last=performance.now();
+    function step(now){
+      if(simCtl.stopped){ dot.remove(); halo.remove(); res('stopped'); return; }
+      const dt=now-last; last=now;
+      if(!simCtl.paused) elapsed+=dt;
+      const t=Math.min(1,elapsed/dur);
+      const pt=pathEl.getPointAtLength((reverse?1-t:t)*len);
+      dot.setAttribute('cx',pt.x);dot.setAttribute('cy',pt.y);
+      halo.setAttribute('cx',pt.x);halo.setAttribute('cy',pt.y);
+      if(t<1) requestAnimationFrame(step);
+      else { dot.remove(); halo.remove(); res(); }
+    }
+    requestAnimationFrame(step);
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// Boot
+// ═══════════════════════════════════════════════════════
+function renderView(){
+  ({physical:renderPhysical,hybrid:renderHybrid,logical:renderLogical,vlan:renderVlan,
+    port:renderPort,iplist:renderIpList,cables:renderCables}[view]||renderPhysical)();
+}
+function renderAll(){renderTabs();renderView();renderProps();renderExplainSelects();}
+
+project=loadLocal()||JSON.parse(JSON.stringify(SAMPLE));
+hist=[JSON.stringify(project)];histIdx=0;
+applyTheme();
+restorePanels();
+renderPalette();
+setupCanvasDnD();
+renderAll();
+updateUndoBtns();
+scheduleValidation(300);   // 起動時にも検証結果とバッジを初期化
+addLog('INFO','Network Designer 起動 — パレットからドラッグ＆ドロップで機器を配置できます');
+addLog('INFO','ホイール=ズーム / Shift+ホイール=横スクロール / 空白ドラッグ or Space+ドラッグ=移動');
+</script>
+</body>
+</html>
