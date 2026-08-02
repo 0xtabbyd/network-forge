@@ -221,10 +221,13 @@ svg.hl-on g.dev-g:not(.hl){opacity:.42}
   display:flex;align-items:center;justify-content:center;font-size:10px;line-height:1}
 .sp-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent)}
 .sp-btn::before{content:'';display:block;border:4px solid transparent}
-#splitL .sp-btn::before{border-right-color:currentColor;margin-right:3px}
-#splitL .sp-btn.pon::before{border-right-color:transparent;border-left-color:currentColor;margin:0 0 0 3px}
-#splitR .sp-btn::before{border-left-color:currentColor;margin-left:3px}
-#splitR .sp-btn.pon::before{border-left-color:transparent;border-right-color:currentColor;margin:0 3px 0 0}
+/* .pon = パネルが開いている状態。矢印は「クリックで動く向き」を示す。
+   左パネル: 開→◀(閉じる) / 閉→▶(開く)   右パネル: 開→▶ / 閉→◀
+   CSS三角形: border-right-color=◀ / border-left-color=▶ */
+#splitL .sp-btn::before{border-left-color:currentColor;margin-left:3px}                                  /* 閉 → ▶ */
+#splitL .sp-btn.pon::before{border-left-color:transparent;border-right-color:currentColor;margin:0 3px 0 0} /* 開 → ◀ */
+#splitR .sp-btn::before{border-right-color:currentColor;margin-right:3px}                                 /* 閉 → ◀ */
+#splitR .sp-btn.pon::before{border-right-color:transparent;border-left-color:currentColor;margin:0 0 0 3px} /* 開 → ▶ */
 body.fs .splitter{display:none}
 /* 機器ホバー時の詳細パネル */
 #devTip{position:absolute;z-index:20;display:none;pointer-events:none;
